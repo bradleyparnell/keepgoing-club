@@ -67,6 +67,12 @@ function buildPinkNoiseBuffer(ctx: AudioContext): AudioBuffer {
   return buf;
 }
 
+// Silent MP3 (1 second, 8kHz mono) as a data URI.
+// Playing this as an <audio> element registers the page as an audio source
+// with iOS/Android, which keeps the Web Audio API alive through screen lock.
+const SILENT_MP3 =
+  'data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZFRlYW0gLyBMYXVyZW5zIEhvbGxhYW5kZXIAVFhYWAAAABkAAANTb2Z0d2FyZQBMYXZjNTguMTMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/80DECwAAAkgAAAAAvVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+
 class NeuralAudioEngine {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
@@ -75,6 +81,24 @@ class NeuralAudioEngine {
   private _volume = 0.35;
   private _track: BeatMode = 'gamma';
   private _noiseBuf: AudioBuffer | null = null;
+  private _silentAudio: HTMLAudioElement | null = null;
+
+  constructor() {
+    // Resume AudioContext whenever the page becomes visible again (screen unlock)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && this._playing && this.ctx) {
+        this.ctx.resume().catch(() => {});
+      }
+    });
+  }
+
+  private ensureSilentAudio(): void {
+    if (this._silentAudio) return;
+    const audio = new Audio(SILENT_MP3);
+    audio.loop = true;
+    audio.volume = 0.001; // effectively silent
+    this._silentAudio = audio;
+  }
 
   // Call this from a raw touchstart/click handler to satisfy mobile AudioContext policy
   unlock(): void {
@@ -340,6 +364,9 @@ class NeuralAudioEngine {
     const ctx = this.ensureCtx();
     this.masterGain!.gain.setValueAtTime(volume, ctx.currentTime);
     this._playing = true;
+    // Start silent audio to keep iOS/Android audio session alive through lock screen
+    this.ensureSilentAudio();
+    this._silentAudio!.play().catch(() => {});
     switch (track) {
       case 'gamma':    this.startGamma(ctx);    break;
       case 'alpha':    this.startAlpha(ctx);    break;
@@ -350,6 +377,11 @@ class NeuralAudioEngine {
 
   stop(): void {
     this._playing = false;
+    // Stop the silent audio keepalive
+    if (this._silentAudio) {
+      this._silentAudio.pause();
+      this._silentAudio.currentTime = 0;
+    }
     if (this.masterGain && this.ctx) {
       this.masterGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.12);
     }
