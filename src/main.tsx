@@ -8,6 +8,7 @@ import AuthScreen from './components/AuthScreen';
 import UserMenu from './components/UserMenu';
 import OnboardingModal from './components/OnboardingModal';
 import ResetPasswordPage from './components/ResetPasswordPage';
+import AdminPage from './components/AdminPage';
 import { Tab, TimerPhase, BeatMode, Project } from './types';
 import { neuroBeat } from './utils/audio';
 import { todayISO } from './utils/dateUtils';
@@ -283,6 +284,7 @@ const AppRoot: React.FC = () => {
 
   // Handle password reset redirect (Supabase lands here with #access_token)
   if (window.location.pathname === '/reset-password') return <ResetPasswordPage />;
+  if (window.location.pathname === '/admin') return <AdminPage />;
 
   if (!user) return <AuthScreen />;
   return <AppInner />;
