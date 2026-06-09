@@ -52,7 +52,7 @@ export default function OnboardingModal() {
         {/* Top tagline — only on first step */}
         {step === 0 && (
           <div className="text-center mb-5">
-            <p className="text-red-700 font-bold text-xs uppercase tracking-widest mb-1">Keep Going</p>
+            <p className="text-orange-600 font-bold text-xs uppercase tracking-widest mb-1">Keep Going</p>
             <h1 className="text-white font-black text-2xl leading-tight">Get more done in less time — with more focus.</h1>
             <p className="text-zinc-500 text-xs mt-2">Here's how it works</p>
             <div className="mt-3 border-b border-zinc-800" />
@@ -72,7 +72,7 @@ export default function OnboardingModal() {
             <div
               key={i}
               className={`h-1.5 rounded-full transition-all ${
-                i === step ? 'w-6 bg-red-700' : 'w-1.5 bg-zinc-700'
+                i === step ? 'w-6 bg-orange-600' : 'w-1.5 bg-zinc-700'
               }`}
             />
           ))}
@@ -90,7 +90,7 @@ export default function OnboardingModal() {
           )}
           <button
             onClick={isLast ? dismiss : () => setStep(s => s + 1)}
-            className="flex-1 py-2.5 rounded-xl bg-red-800 hover:bg-red-700 text-white font-bold text-sm transition-colors"
+            className="flex-1 py-2.5 rounded-xl bg-orange-700 hover:bg-orange-600 text-white font-bold text-sm transition-colors"
           >
             {isLast ? "Let's Go 🧱" : 'Next →'}
           </button>

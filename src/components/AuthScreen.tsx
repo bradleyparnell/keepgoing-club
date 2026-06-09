@@ -136,7 +136,7 @@ export default function AuthScreen() {
               />
             )}
 
-            {error && <p className="text-red-400 text-xs">{error}</p>}
+            {error && <p className="text-orange-400 text-xs">{error}</p>}
             {message && <p className="text-green-400 text-xs">{message}</p>}
 
             <button
