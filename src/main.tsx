@@ -4,10 +4,13 @@ import { Timer, LayoutGrid, Music } from 'lucide-react';
 import { TimerTab } from './components/TimerTab';
 import { ProjectsTab } from './components/ProjectsTab';
 import { SoundsTab } from './components/SoundsTab';
-import { Tab, TimerPhase, BeatMode, Project, Task } from './types';
+import AuthScreen from './components/AuthScreen';
+import UserMenu from './components/UserMenu';
+import { Tab, TimerPhase, BeatMode, Project } from './types';
 import { neuroBeat } from './utils/audio';
-import { storage } from './utils/storage';
 import { todayISO } from './utils/dateUtils';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { useProjects, useDailySettings } from './hooks/useProjects';
 import './index.css';
 
 const DURATIONS: Record<TimerPhase, number> = {
@@ -18,7 +21,9 @@ const DURATIONS: Record<TimerPhase, number> = {
 
 function playDing() {
   try {
-    const ctx = new AudioContext();
+    const CtxClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+    if (!CtxClass) return;
+    const ctx = new CtxClass();
     [0, 0.18, 0.36].forEach(delay => {
       const osc  = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -33,17 +38,28 @@ function playDing() {
       osc.start(t);
       osc.stop(t + 0.55);
     });
-  } catch (_) { /* AudioContext not available */ }
+  } catch (_) {}
 }
 
-const App: React.FC = () => {
+// ── Inner App (uses auth + Supabase hooks) ────────────────────────────────
+const AppInner: React.FC = () => {
   const [tab, setTab]                         = useState<Tab>('projects');
-  const [projects, setProjects]               = useState<Project[]>([]);
-  const [tasks, setTasks]                     = useState<Task[]>([]);
-  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-  const [dailyBudget, setDailyBudget]         = useState(8);
   const [selectedDate, setSelectedDate]       = useState(todayISO);
-  const [loading, setLoading]                 = useState(true);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+
+  // Supabase data hooks
+  const { projects: rawProjects, addProject, incrementBrick, deleteProject } = useProjects(selectedDate);
+  const { workHours, setWorkHours } = useDailySettings();
+
+  // Map Supabase fields → internal Project shape expected by components
+  const projects: Project[] = rawProjects.map(p => ({
+    id:                p.id,
+    name:              p.name,
+    color:             p.color,
+    totalTomatoes:     p.bricks_per_day,
+    completedTomatoes: p.bricks_completed,
+    plannedDate:       p.planned_date,
+  }));
 
   // Timer state
   const [phase, setPhase]               = useState<TimerPhase>('focus');
@@ -64,28 +80,7 @@ const App: React.FC = () => {
   const [musicPlaying, setMusicPlaying] = useState(false);
   const [volume, setVolume]             = useState(0.4);
 
-  // ── Load from localStorage on mount ──────────────────────────────────────
-  useEffect(() => {
-    setDailyBudget(storage.getDailyBudget());
-    const today = todayISO();
-    // Backfill plannedDate for any legacy projects that lack it
-    const rawProjects = storage.getProjects().map((p: Project) => ({
-      ...p,
-      plannedDate: p.plannedDate || today,
-    }));
-    setProjects(rawProjects);
-    setTasks(storage.getTasks());
-    setActiveProjectId(storage.getActiveProjectId());
-    setLoading(false);
-  }, []);
-
-  // ── Auto-save when state changes ─────────────────────────────────────────
-  useEffect(() => { if (!loading) storage.saveProjects(projects);      }, [projects, loading]);
-  useEffect(() => { if (!loading) storage.saveTasks(tasks);            }, [tasks, loading]);
-  useEffect(() => { if (!loading) storage.setDailyBudget(dailyBudget); }, [dailyBudget, loading]);
-  useEffect(() => { storage.setActiveProjectId(activeProjectId);       }, [activeProjectId]);
-
-  // ── Timer interval ────────────────────────────────────────────────────────
+  // ── Timer interval ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!isRunning) return;
     const id = setInterval(() => {
@@ -101,7 +96,7 @@ const App: React.FC = () => {
     return () => clearInterval(id);
   }, [isRunning]);
 
-  // ── Handle timer completion ───────────────────────────────────────────────
+  // ── Handle timer completion ─────────────────────────────────────────────
   useEffect(() => {
     if (!completed) return;
     setCompleted(false);
@@ -115,14 +110,8 @@ const App: React.FC = () => {
       const newCount = curCount + 1;
       setSessionCount(newCount);
 
-      if (curProjId) {
-        setProjects(prev => prev.map(p => {
-          if (p.id === curProjId && p.completedTomatoes < p.totalTomatoes) {
-            return { ...p, completedTomatoes: p.completedTomatoes + 1 };
-          }
-          return p;
-        }));
-      }
+      // ← Supabase brick increment
+      if (curProjId) incrementBrick(curProjId);
 
       const nextPhase: TimerPhase = newCount % 4 === 0 ? 'longBreak' : 'shortBreak';
       setPhase(nextPhase);
@@ -131,20 +120,18 @@ const App: React.FC = () => {
       setPhase('focus');
       setTimeLeft(DURATIONS.focus);
     }
-  }, [completed]);
+  }, [completed, incrementBrick]);
 
-  // ── Timer controls ────────────────────────────────────────────────────────
+  // ── Timer controls ──────────────────────────────────────────────────────
   function handleChangePhase(p: TimerPhase) {
     if (isRunning) return;
     setPhase(p);
     setTimeLeft(DURATIONS[p]);
   }
-
   function handleReset() {
     setIsRunning(false);
     setTimeLeft(DURATIONS[phase]);
   }
-
   function handleSkip() {
     setIsRunning(false);
     if (phase === 'focus') {
@@ -159,75 +146,33 @@ const App: React.FC = () => {
     }
   }
 
-  // ── Music controls ────────────────────────────────────────────────────────
+  // ── Music controls ──────────────────────────────────────────────────────
   function handleMusicToggle() {
-    if (musicPlaying) {
-      neuroBeat.stop();
-      setMusicPlaying(false);
-    } else {
-      neuroBeat.start(beatMode, volume);
-      setMusicPlaying(true);
-    }
+    if (musicPlaying) { neuroBeat.stop(); setMusicPlaying(false); }
+    else              { neuroBeat.start(beatMode, volume); setMusicPlaying(true); }
   }
-
   function handleModeChange(mode: BeatMode) {
     setBeatMode(mode);
     if (musicPlaying) neuroBeat.start(mode, volume);
   }
-
   function handleVolumeChange(v: number) {
     setVolume(v);
     neuroBeat.setVolume(v);
   }
 
-  // ── Project CRUD ──────────────────────────────────────────────────────────
-  function handleAddProject(name: string, tomatoes: number, plannedDate: string) {
-    const id = `p_${Date.now()}`;
-    const proj: Project = { id, name, color: 'primary', totalTomatoes: tomatoes, completedTomatoes: 0, plannedDate };
-    setProjects(prev => [...prev, proj]);
-    if (!activeProjectId) setActiveProjectId(id);
+  // ── Project handlers (call Supabase) ────────────────────────────────────
+  function handleAddProject(name: string, bricksPerDay: number, _plannedDate: string) {
+    addProject(name, '#b45309', bricksPerDay);
   }
-
   function handleDeleteProject(id: string) {
-    setProjects(prev => prev.filter(p => p.id !== id));
-    setTasks(prev => prev.filter(t => t.projectId !== id));
+    deleteProject(id);
     if (activeProjectId === id) setActiveProjectId(null);
   }
-
-  function handleUpdateTomatoes(projectId: string, total: number) {
-    setProjects(prev => prev.map(p => p.id === projectId ? { ...p, totalTomatoes: total } : p));
-  }
-
-  function handleSetBudget(n: number) {
-    setDailyBudget(n);
-  }
-
-  // ── Task CRUD ─────────────────────────────────────────────────────────────
-  function handleAddTask(projectId: string, text: string) {
-    const id = `t_${Date.now()}`;
-    setTasks(prev => [...prev, { id, projectId, text, done: false }]);
-  }
-
-  function handleToggleTask(taskId: string) {
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, done: !t.done } : t));
-  }
-
-  function handleDeleteTask(taskId: string) {
-    setTasks(prev => prev.filter(t => t.id !== taskId));
-  }
-
-  // ── Render ────────────────────────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-base-100">
-        <div className="text-center">
-          <div className="text-6xl mb-4 animate-bounce">🧱</div>
-          <span className="loading loading-spinner loading-lg text-primary" />
-          <div className="font-black mt-3 text-base-content/50">Loading your focus session...</div>
-        </div>
-      </div>
-    );
-  }
+  // No-op stubs for task handlers (tasks not in Supabase schema yet)
+  const handleAddTask    = (_pid: string, _text: string) => {};
+  const handleToggleTask = (_tid: string) => {};
+  const handleDeleteTask = (_tid: string) => {};
+  const handleUpdateTomatoes = (_pid: string, _n: number) => {};
 
   const activeProject = projects.find(p => p.id === activeProjectId) ?? null;
 
@@ -239,18 +184,23 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-base-100 max-w-lg mx-auto">
+      {/* User avatar top-right */}
+      <div className="absolute top-3 right-4 z-50">
+        <UserMenu />
+      </div>
+
       <div className="flex-1 overflow-y-auto" style={{ paddingBottom: '5rem' }}>
         {tab === 'projects' && (
           <ProjectsTab
             projects={projects}
-            tasks={tasks}
+            tasks={[]}
             activeProjectId={activeProjectId}
-            dailyBudget={dailyBudget}
+            dailyBudget={workHours}
             selectedDate={selectedDate}
             onDateChange={setSelectedDate}
             onSetActive={(id: string) => setActiveProjectId(id)}
             onStartFocusing={() => setTab('timer')}
-            onSetBudget={handleSetBudget}
+            onSetBudget={setWorkHours}
             onAddProject={handleAddProject}
             onDeleteProject={handleDeleteProject}
             onAddTask={handleAddTask}
@@ -313,4 +263,27 @@ const App: React.FC = () => {
   );
 };
 
-createRoot(document.getElementById('root')!).render(<App />);
+// ── Auth gate ─────────────────────────────────────────────────────────────
+const AppRoot: React.FC = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-5xl mb-4">🧱</div>
+          <div className="text-zinc-500 text-sm font-bold">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return <AuthScreen />;
+  return <AppInner />;
+};
+
+createRoot(document.getElementById('root')!).render(
+  <AuthProvider>
+    <AppRoot />
+  </AuthProvider>
+);
