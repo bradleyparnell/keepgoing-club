@@ -86,8 +86,12 @@ class NeuralAudioEngine {
   constructor() {
     // Resume AudioContext whenever the page becomes visible again (screen unlock)
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && this._playing && this.ctx) {
-        this.ctx.resume().catch(() => {});
+      if (document.visibilityState === 'visible' && this._playing) {
+        if (this.ctx) this.ctx.resume().catch(() => {});
+        // Also nudge the silent audio back to playing (iOS may have paused it)
+        if (this._silentAudio && this._silentAudio.paused) {
+          this._silentAudio.play().catch(() => {});
+        }
       }
     });
   }
@@ -96,8 +100,23 @@ class NeuralAudioEngine {
     if (this._silentAudio) return;
     const audio = new Audio(SILENT_MP3);
     audio.loop = true;
-    audio.volume = 0.001; // effectively silent
+    audio.volume = 0.001;          // effectively silent
+    (audio as any).playsInline = true; // iOS: don't fullscreen the audio element
     this._silentAudio = audio;
+  }
+
+  // Register a MediaSession with iOS/Android so the OS treats this page
+  // as an active media source — keeps WebAudio alive through screen lock.
+  private registerMediaSession(): void {
+    if (!('mediaSession' in navigator)) return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: 'Neural Focus Audio',
+      artist: 'Keep Going',
+      album: 'keepgoing.club',
+    });
+    // Provide no-op handlers so iOS doesn't kill the session
+    navigator.mediaSession.setActionHandler('play',  () => { this.ctx?.resume(); });
+    navigator.mediaSession.setActionHandler('pause', () => { /* keep running */ });
   }
 
   // Call this from a raw touchstart/click handler to satisfy mobile AudioContext policy
@@ -364,9 +383,17 @@ class NeuralAudioEngine {
     const ctx = this.ensureCtx();
     this.masterGain!.gain.setValueAtTime(volume, ctx.currentTime);
     this._playing = true;
+    // Auto-resume AudioContext if iOS suspends/interrupts it (e.g. phone call)
+    ctx.addEventListener('statechange', () => {
+      if (this._playing && (ctx.state === 'suspended' || (ctx.state as string) === 'interrupted')) {
+        ctx.resume().catch(() => {});
+      }
+    });
     // Start silent audio to keep iOS/Android audio session alive through lock screen
     this.ensureSilentAudio();
     this._silentAudio!.play().catch(() => {});
+    // Register with OS media center — required for iOS lock screen keepalive
+    this.registerMediaSession();
     switch (track) {
       case 'gamma':    this.startGamma(ctx);    break;
       case 'alpha':    this.startAlpha(ctx);    break;

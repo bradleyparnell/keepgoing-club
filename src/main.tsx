@@ -44,6 +44,20 @@ function playDing() {
   } catch (_) {}
 }
 
+// ── Nature background images (random on each page load) ─────────────────
+const NATURE_IMAGES = [
+  'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1920&q=80', // Swiss Alps sunset
+  'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1920&q=80', // Sunlit forest
+  'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=1920&q=80', // Mountain lake reflection
+  'https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&w=1920&q=80', // Aerial green hills
+  'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1920&q=80', // Misty mountain path
+  'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1920&q=80', // Moraine Lake
+  'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?auto=format&fit=crop&w=1920&q=80', // Green rolling hills
+  'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80', // Mountain peaks
+  'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?auto=format&fit=crop&w=1920&q=80', // Ocean waves
+  'https://images.unsplash.com/photo-1540390769625-2fc3f8b1d50c?auto=format&fit=crop&w=1920&q=80', // Northern lights
+];
+
 // ── Inner App (uses auth + Supabase hooks) ────────────────────────────────
 const AppInner: React.FC = () => {
   const [tab, setTab]                         = useState<Tab>('projects');
@@ -53,6 +67,11 @@ const AppInner: React.FC = () => {
   // Supabase data hooks
   const { projects: rawProjects, addProject, incrementBrick, deleteProject } = useProjects(selectedDate);
   const { workHours, setWorkHours } = useDailySettings();
+
+  // Pick a random nature bg image once per mount (changes on page reload)
+  const [bgImage] = useState(
+    () => NATURE_IMAGES[Math.floor(Math.random() * NATURE_IMAGES.length)]
+  );
 
   // Map Supabase fields → internal Project shape expected by components
   const projects: Project[] = rawProjects.map(p => ({
@@ -186,7 +205,18 @@ const AppInner: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col h-screen bg-base-100 max-w-lg mx-auto" data-theme="keepgoing">
+    <div
+      className="relative min-h-screen bg-cover bg-center bg-fixed"
+      style={{ backgroundImage: `url(${bgImage})` }}
+    >
+      {/* Darkening overlay — lets the landscape breathe without blinding */}
+      <div className="fixed inset-0 bg-black/55 pointer-events-none z-0" />
+
+      {/* App panel: opaque on mobile, frosted on desktop */}
+      <div
+        className="relative z-10 flex flex-col h-screen bg-[#111111] md:bg-[#111111]/90 md:backdrop-blur-sm max-w-lg mx-auto md:shadow-[0_0_80px_rgba(0,0,0,0.8)]"
+        data-theme="keepgoing"
+      >
       <OnboardingModal />
       {/* User avatar top-right */}
       <div className="absolute top-3 right-4 z-50">
@@ -262,6 +292,7 @@ const AppInner: React.FC = () => {
             {label}
           </button>
         ))}
+      </div>
       </div>
     </div>
   );
