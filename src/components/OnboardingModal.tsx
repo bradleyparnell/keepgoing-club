@@ -49,6 +49,16 @@ export default function OnboardingModal() {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
          style={{ background: 'rgba(0,0,0,0.85)' }}>
       <div className="bg-zinc-900 border border-zinc-700 rounded-2xl w-full max-w-sm p-7 shadow-2xl">
+        {/* Top tagline — only on first step */}
+        {step === 0 && (
+          <div className="text-center mb-5">
+            <p className="text-red-700 font-bold text-xs uppercase tracking-widest mb-1">Keep Going</p>
+            <h1 className="text-white font-black text-2xl leading-tight">Get more done in less time — with more focus.</h1>
+            <p className="text-zinc-500 text-xs mt-2">Here's how it works</p>
+            <div className="mt-3 border-b border-zinc-800" />
+          </div>
+        )}
+
         {/* Header */}
         <div className="text-center mb-6">
           <div className="text-5xl mb-3">{current.icon}</div>
