@@ -204,95 +204,161 @@ const AppInner: React.FC = () => {
     { id: 'sounds'   as Tab, icon: <Music      size={22} />, label: 'Sounds'   },
   ];
 
+  const tabContent = (
+    <>
+      {tab === 'projects' && (
+        <ProjectsTab
+          projects={projects}
+          tasks={[]}
+          activeProjectId={activeProjectId}
+          dailyBudget={workHours}
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+          onSetActive={(id: string) => setActiveProjectId(id)}
+          onStartFocusing={() => setTab('timer')}
+          onSetBudget={setWorkHours}
+          onAddProject={handleAddProject}
+          onDeleteProject={handleDeleteProject}
+          onAddTask={handleAddTask}
+          onToggleTask={handleToggleTask}
+          onDeleteTask={handleDeleteTask}
+          onUpdateTomatoes={handleUpdateTomatoes}
+        />
+      )}
+      {tab === 'timer' && (
+        <TimerTab
+          phase={phase}
+          timeLeft={timeLeft}
+          isRunning={isRunning}
+          sessionCount={sessionCount}
+          activeProject={activeProject}
+          musicPlaying={musicPlaying}
+          onPlay={() => setIsRunning(true)}
+          onPause={() => setIsRunning(false)}
+          onReset={handleReset}
+          onSkip={handleSkip}
+          onChangePhase={handleChangePhase}
+          onGoToProjects={() => setTab('projects')}
+        />
+      )}
+      {tab === 'sounds' && (
+        <SoundsTab
+          isPlaying={musicPlaying}
+          beatMode={beatMode}
+          volume={volume}
+          onToggle={handleMusicToggle}
+          onModeChange={handleModeChange}
+          onVolumeChange={handleVolumeChange}
+        />
+      )}
+    </>
+  );
+
   return (
     <div
       className="relative min-h-screen bg-cover bg-center bg-fixed"
       style={{ backgroundImage: `url(${bgImage})` }}
+      data-theme="keepgoing"
     >
-      {/* Darkening overlay — lets the landscape breathe without blinding */}
+      {/* Background overlay */}
       <div className="fixed inset-0 bg-black/55 pointer-events-none z-0" />
 
-      {/* App panel: opaque on mobile, frosted on desktop */}
-      <div
-        className="relative z-10 flex flex-col h-screen bg-[#111111] md:bg-[#111111]/90 md:backdrop-blur-sm max-w-lg mx-auto md:shadow-[0_0_80px_rgba(0,0,0,0.8)]"
-        data-theme="keepgoing"
-      >
       <OnboardingModal />
-      {/* User avatar top-right */}
-      <div className="absolute top-3 right-4 z-50">
-        <UserMenu />
-      </div>
 
-      <div className="flex-1 overflow-y-auto" style={{ paddingBottom: '5rem' }}>
-        {tab === 'projects' && (
-          <ProjectsTab
-            projects={projects}
-            tasks={[]}
-            activeProjectId={activeProjectId}
-            dailyBudget={workHours}
-            selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
-            onSetActive={(id: string) => setActiveProjectId(id)}
-            onStartFocusing={() => setTab('timer')}
-            onSetBudget={setWorkHours}
-            onAddProject={handleAddProject}
-            onDeleteProject={handleDeleteProject}
-            onAddTask={handleAddTask}
-            onToggleTask={handleToggleTask}
-            onDeleteTask={handleDeleteTask}
-            onUpdateTomatoes={handleUpdateTomatoes}
-          />
-        )}
-        {tab === 'timer' && (
-          <TimerTab
-            phase={phase}
-            timeLeft={timeLeft}
-            isRunning={isRunning}
-            sessionCount={sessionCount}
-            activeProject={activeProject}
-            musicPlaying={musicPlaying}
-            onPlay={() => setIsRunning(true)}
-            onPause={() => setIsRunning(false)}
-            onReset={handleReset}
-            onSkip={handleSkip}
-            onChangePhase={handleChangePhase}
-            onGoToProjects={() => setTab('projects')}
-          />
-        )}
-        {tab === 'sounds' && (
-          <SoundsTab
-            isPlaying={musicPlaying}
-            beatMode={beatMode}
-            volume={volume}
-            onToggle={handleMusicToggle}
-            onModeChange={handleModeChange}
-            onVolumeChange={handleVolumeChange}
-          />
-        )}
-      </div>
+      {/* ── DESKTOP layout (md+) ───────────────────────────────────────── */}
+      <div className="hidden md:flex fixed inset-0 z-10">
 
-      <div className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-base-200 border-t-2 border-base-300 flex z-50">
-        {NAV_TABS.map(({ id, icon, label }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`flex-1 flex flex-col items-center gap-1 py-3 font-extrabold text-xs transition-all ${
-              tab === id ? 'text-primary' : 'text-base-content/40 hover:text-base-content/70'
-            }`}
-          >
-            <div className={`relative transition-transform ${tab === id ? 'scale-110' : ''}`}>
-              {icon}
-              {id === 'sounds' && musicPlaying && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-success rounded-full" />
-              )}
-              {id === 'timer' && isRunning && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-error rounded-full animate-pulse" />
-              )}
+        {/* Left sidebar */}
+        <aside className="flex flex-col w-60 shrink-0 bg-[#0e0e0e]/95 backdrop-blur-md border-r border-white/[0.07]">
+
+          {/* Brand */}
+          <div className="flex items-center gap-3 px-5 py-5 border-b border-white/[0.07]">
+            <span className="text-3xl leading-none">🧱</span>
+            <div>
+              <div className="text-primary font-black text-sm uppercase tracking-widest leading-none">Keep Going</div>
+              <div className="text-white/25 text-[10px] font-bold uppercase tracking-widest mt-1">Focus Club</div>
             </div>
-            {label}
-          </button>
-        ))}
+          </div>
+
+          {/* Nav items */}
+          <nav className="flex flex-col gap-1 p-3 flex-1 pt-5">
+            {NAV_TABS.map(({ id, icon, label }) => (
+              <button
+                key={id}
+                onClick={() => setTab(id)}
+                className={`relative flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-left w-full ${
+                  tab === id
+                    ? 'bg-primary/15 text-primary border border-primary/25'
+                    : 'text-white/40 hover:text-white/75 hover:bg-white/5 border border-transparent'
+                }`}
+              >
+                {icon}
+                <span>{label}</span>
+                {id === 'sounds' && musicPlaying && (
+                  <span className="ml-auto w-2 h-2 bg-success rounded-full shrink-0" />
+                )}
+                {id === 'timer' && isRunning && (
+                  <span className="ml-auto w-2 h-2 bg-error rounded-full animate-pulse shrink-0" />
+                )}
+              </button>
+            ))}
+          </nav>
+
+          {/* Session counter */}
+          {sessionCount > 0 && (
+            <div className="mx-3 mb-3 px-4 py-3 rounded-xl bg-white/5 border border-white/[0.07]">
+              <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-1">Today</div>
+              <div className="text-primary font-black text-lg leading-none">{sessionCount} <span className="text-white/40 text-xs font-bold">bricks</span></div>
+            </div>
+          )}
+
+          {/* User menu */}
+          <div className="p-4 border-t border-white/[0.07]">
+            <UserMenu />
+          </div>
+        </aside>
+
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto bg-[#111111]/85 backdrop-blur-sm">
+          {tabContent}
+        </main>
       </div>
+
+      {/* ── MOBILE layout (< md) ──────────────────────────────────────────── */}
+      <div className="md:hidden relative z-10 flex flex-col h-screen bg-[#111111] max-w-lg mx-auto">
+
+        {/* User menu top-right */}
+        <div className="absolute top-3 right-4 z-50">
+          <UserMenu />
+        </div>
+
+        <div className="flex-1 overflow-y-auto" style={{ paddingBottom: '5rem' }}>
+          {tabContent}
+        </div>
+
+        {/* Bottom nav */}
+        <div className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-base-200 border-t-2 border-base-300 flex z-50">
+          {NAV_TABS.map(({ id, icon, label }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={`flex-1 flex flex-col items-center gap-1 py-3 font-extrabold text-xs transition-all ${
+                tab === id ? 'text-primary' : 'text-base-content/40 hover:text-base-content/70'
+              }`}
+            >
+              <div className={`relative transition-transform ${tab === id ? 'scale-110' : ''}`}>
+                {icon}
+                {id === 'sounds' && musicPlaying && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-success rounded-full" />
+                )}
+                {id === 'timer' && isRunning && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-error rounded-full animate-pulse" />
+                )}
+              </div>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
