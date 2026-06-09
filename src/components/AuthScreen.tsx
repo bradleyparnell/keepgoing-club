@@ -68,7 +68,7 @@ export default function AuthScreen() {
             </svg>
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight">keepgoing.club</h1>
-          <p className="text-zinc-500 text-sm mt-1">Lay bricks. Build something real.</p>
+          <p className="text-zinc-500 text-sm mt-1">Get more tasks done in less time — with more focus.</p>
         </div>
 
         {/* Card */}
