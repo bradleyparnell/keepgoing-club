@@ -1,7 +1,41 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Play, Pause, RotateCcw, SkipForward } from 'lucide-react';
 import { TimerPhase, Project } from '../types';
 import { Brick } from './Brick';
+
+// ── Bible verses by phase ─────────────────────────────────────────────────
+const VERSES: Record<TimerPhase, { text: string; ref: string }[]> = {
+  focus: [
+    { text: "Whatever you do, work at it with all your heart, as working for the Lord, not for human masters.", ref: "Colossians 3:23" },
+    { text: "I can do all things through Christ who strengthens me.", ref: "Philippians 4:13" },
+    { text: "Commit to the Lord whatever you do, and he will establish your plans.", ref: "Proverbs 16:3" },
+    { text: "The plans of the diligent lead to profit as surely as haste leads to poverty.", ref: "Proverbs 21:5" },
+    { text: "Do not be anxious about anything, but in every situation present your requests to God.", ref: "Philippians 4:6" },
+    { text: "Let your eyes look straight ahead; fix your gaze directly before you.", ref: "Proverbs 4:25" },
+    { text: "Be strong and courageous. Do not be afraid; do not be discouraged, for the Lord your God will be with you wherever you go.", ref: "Joshua 1:9" },
+    { text: "Whatever your hand finds to do, do it with all your might.", ref: "Ecclesiastes 9:10" },
+    { text: "For God gave us a spirit not of fear but of power and love and self-control.", ref: "2 Timothy 1:7" },
+    { text: "Run in such a way as to get the prize.", ref: "1 Corinthians 9:24" },
+    { text: "No eye has seen, no ear has heard, no mind has conceived what God has prepared for those who love him.", ref: "1 Corinthians 2:9" },
+    { text: "Trust in the Lord with all your heart and lean not on your own understanding.", ref: "Proverbs 3:5" },
+  ],
+  shortBreak: [
+    { text: "He makes me lie down in green pastures, he leads me beside quiet waters, he refreshes my soul.", ref: "Psalm 23:2–3" },
+    { text: "Come to me, all you who are weary and burdened, and I will give you rest.", ref: "Matthew 11:28" },
+    { text: "The Lord is my strength and my shield; my heart trusts in him, and he helps me.", ref: "Psalm 28:7" },
+    { text: "Be still, and know that I am God.", ref: "Psalm 46:10" },
+    { text: "Those who hope in the Lord will renew their strength. They will soar on wings like eagles.", ref: "Isaiah 40:31" },
+    { text: "Cast your cares on the Lord and he will sustain you.", ref: "Psalm 55:22" },
+  ],
+  longBreak: [
+    { text: "The Lord your God is in your midst, a mighty one who will save; he will rejoice over you with gladness.", ref: "Zephaniah 3:17" },
+    { text: "He gives strength to the weary and increases the power of the weak.", ref: "Isaiah 40:29" },
+    { text: "Return to your rest, my soul, for the Lord has been good to you.", ref: "Psalm 116:7" },
+    { text: "And on the seventh day God finished his work that he had done, and he rested.", ref: "Genesis 2:2" },
+    { text: "The Lord bless you and keep you; the Lord make his face shine on you and be gracious to you.", ref: "Numbers 6:24–25" },
+    { text: "In peace I will lie down and sleep, for you alone, Lord, make me dwell in safety.", ref: "Psalm 4:8" },
+  ],
+};
 
 interface TimerTabProps {
   phase: TimerPhase;
@@ -43,6 +77,12 @@ export const TimerTab: React.FC<TimerTabProps> = ({
   const total = DURATIONS[phase];
   const pct = Math.round(((total - timeLeft) / total) * 100);
   const meta = PHASE_META[phase];
+
+  // Pick a verse once per phase change (stable within a session)
+  const verse = useMemo(() => {
+    const pool = VERSES[phase];
+    return pool[Math.floor(Math.random() * pool.length)];
+  }, [phase, sessionCount]);
   const displaySessions = Math.max(4, sessionCount + 1);
 
   return (
@@ -180,6 +220,19 @@ export const TimerTab: React.FC<TimerTabProps> = ({
           🧱 Assign Your Target →
         </button>
       )}
+
+      {/* Bible verse */}
+      <div className="card bg-base-200/60 w-full max-w-xs border border-primary/20">
+        <div className="card-body p-4 gap-1">
+          <div className="text-xs font-black uppercase tracking-widest text-primary/60 mb-1">✝ Word</div>
+          <p className="text-sm font-semibold leading-snug text-base-content/80 italic">
+            "{verse.text}"
+          </p>
+          <p className="text-xs font-black uppercase tracking-widest text-primary mt-1">
+            {verse.ref}
+          </p>
+        </div>
+      </div>
 
       {/* Motivational tag */}
       <div className="text-xs font-black uppercase tracking-widest text-base-content/25 pb-2 text-center">
