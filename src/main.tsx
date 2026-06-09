@@ -7,6 +7,7 @@ import { SoundsTab } from './components/SoundsTab';
 import { Tab, TimerPhase, BeatMode, Project, Task } from './types';
 import { neuroBeat } from './utils/audio';
 import { storage } from './utils/storage';
+import { todayISO } from './utils/dateUtils';
 import './index.css';
 
 const DURATIONS: Record<TimerPhase, number> = {
@@ -41,6 +42,7 @@ const App: React.FC = () => {
   const [tasks, setTasks]                     = useState<Task[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [dailyBudget, setDailyBudget]         = useState(8);
+  const [selectedDate, setSelectedDate]       = useState(todayISO);
   const [loading, setLoading]                 = useState(true);
 
   // Timer state
@@ -53,8 +55,8 @@ const App: React.FC = () => {
   const phaseRef         = useRef(phase);
   const sessionCountRef  = useRef(sessionCount);
   const activeProjectRef = useRef(activeProjectId);
-  useEffect(() => { phaseRef.current        = phase;          }, [phase]);
-  useEffect(() => { sessionCountRef.current = sessionCount;   }, [sessionCount]);
+  useEffect(() => { phaseRef.current         = phase;           }, [phase]);
+  useEffect(() => { sessionCountRef.current  = sessionCount;    }, [sessionCount]);
   useEffect(() => { activeProjectRef.current = activeProjectId; }, [activeProjectId]);
 
   // Music state
@@ -65,7 +67,13 @@ const App: React.FC = () => {
   // ── Load from localStorage on mount ──────────────────────────────────────
   useEffect(() => {
     setDailyBudget(storage.getDailyBudget());
-    setProjects(storage.getProjects());
+    const today = todayISO();
+    // Backfill plannedDate for any legacy projects that lack it
+    const rawProjects = storage.getProjects().map((p: Project) => ({
+      ...p,
+      plannedDate: p.plannedDate || today,
+    }));
+    setProjects(rawProjects);
     setTasks(storage.getTasks());
     setActiveProjectId(storage.getActiveProjectId());
     setLoading(false);
@@ -173,9 +181,9 @@ const App: React.FC = () => {
   }
 
   // ── Project CRUD ──────────────────────────────────────────────────────────
-  function handleAddProject(name: string, tomatoes: number) {
+  function handleAddProject(name: string, tomatoes: number, plannedDate: string) {
     const id = `p_${Date.now()}`;
-    const proj: Project = { id, name, color: 'primary', totalTomatoes: tomatoes, completedTomatoes: 0 };
+    const proj: Project = { id, name, color: 'primary', totalTomatoes: tomatoes, completedTomatoes: 0, plannedDate };
     setProjects(prev => [...prev, proj]);
     if (!activeProjectId) setActiveProjectId(id);
   }
@@ -224,14 +232,33 @@ const App: React.FC = () => {
   const activeProject = projects.find(p => p.id === activeProjectId) ?? null;
 
   const NAV_TABS = [
-    { id: 'timer'    as Tab, icon: <Timer      size={22} />, label: 'Timer'    },
     { id: 'projects' as Tab, icon: <LayoutGrid size={22} />, label: 'Projects' },
+    { id: 'timer'    as Tab, icon: <Timer      size={22} />, label: 'Timer'    },
     { id: 'sounds'   as Tab, icon: <Music      size={22} />, label: 'Sounds'   },
   ];
 
   return (
     <div className="flex flex-col h-screen bg-base-100 max-w-lg mx-auto">
       <div className="flex-1 overflow-y-auto" style={{ paddingBottom: '5rem' }}>
+        {tab === 'projects' && (
+          <ProjectsTab
+            projects={projects}
+            tasks={tasks}
+            activeProjectId={activeProjectId}
+            dailyBudget={dailyBudget}
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            onSetActive={(id: string) => setActiveProjectId(id)}
+            onStartFocusing={() => setTab('timer')}
+            onSetBudget={handleSetBudget}
+            onAddProject={handleAddProject}
+            onDeleteProject={handleDeleteProject}
+            onAddTask={handleAddTask}
+            onToggleTask={handleToggleTask}
+            onDeleteTask={handleDeleteTask}
+            onUpdateTomatoes={handleUpdateTomatoes}
+          />
+        )}
         {tab === 'timer' && (
           <TimerTab
             phase={phase}
@@ -248,23 +275,6 @@ const App: React.FC = () => {
             onGoToProjects={() => setTab('projects')}
           />
         )}
-        {tab === 'projects' && (
-          <ProjectsTab
-            projects={projects}
-            tasks={tasks}
-            activeProjectId={activeProjectId}
-            dailyBudget={dailyBudget}
-            onSetActive={(id: string) => setActiveProjectId(id)}
-            onStartFocusing={() => setTab('timer')}
-            onSetBudget={handleSetBudget}
-            onAddProject={handleAddProject}
-            onDeleteProject={handleDeleteProject}
-            onAddTask={handleAddTask}
-            onToggleTask={handleToggleTask}
-            onDeleteTask={handleDeleteTask}
-            onUpdateTomatoes={handleUpdateTomatoes}
-          />
-        )}
         {tab === 'sounds' && (
           <SoundsTab
             isPlaying={musicPlaying}
@@ -277,16 +287,13 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {/* Bottom nav */}
       <div className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-base-200 border-t-2 border-base-300 flex z-50">
         {NAV_TABS.map(({ id, icon, label }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
             className={`flex-1 flex flex-col items-center gap-1 py-3 font-extrabold text-xs transition-all ${
-              tab === id
-                ? 'text-primary'
-                : 'text-base-content/40 hover:text-base-content/70'
+              tab === id ? 'text-primary' : 'text-base-content/40 hover:text-base-content/70'
             }`}
           >
             <div className={`relative transition-transform ${tab === id ? 'scale-110' : ''}`}>

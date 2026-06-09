@@ -3,16 +3,20 @@ import { Plus, Trash2, ChevronDown, ChevronUp, Check, Target, PlayCircle, Minus 
 import { Project, Task } from '../types';
 import { AddProjectModal } from './AddProjectModal';
 import { Brick } from './Brick';
+import { DateStrip } from './DateStrip';
+import { formatDateLabel, formatDateSubtitle } from '../utils/dateUtils';
 
 interface ProjectsTabProps {
   projects: Project[];
   tasks: Task[];
   activeProjectId: string | null;
   dailyBudget: number;
+  selectedDate: string;
+  onDateChange: (date: string) => void;
   onSetActive: (id: string) => void;
   onStartFocusing: () => void;
   onSetBudget: (n: number) => void;
-  onAddProject: (name: string, tomatoes: number) => void;
+  onAddProject: (name: string, tomatoes: number, plannedDate: string) => void;
   onDeleteProject: (id: string) => void;
   onAddTask: (projectId: string, text: string) => void;
   onToggleTask: (taskId: string) => void;
@@ -40,8 +44,8 @@ const QUOTES = [
 const todayQuoteIndex = new Date().getDate() % QUOTES.length;
 
 export const ProjectsTab: React.FC<ProjectsTabProps> = ({
-  projects, tasks, activeProjectId, dailyBudget,
-  onSetActive, onStartFocusing, onSetBudget,
+  projects, tasks, activeProjectId, dailyBudget, selectedDate,
+  onDateChange, onSetActive, onStartFocusing, onSetBudget,
   onAddProject, onDeleteProject, onAddTask,
   onToggleTask, onDeleteTask, onUpdateTomatoes,
 }) => {
@@ -56,23 +60,28 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
     setTaskInputs(prev => ({ ...prev, [projectId]: '' }));
   }
 
-  const allocatedBricks = projects.reduce((sum, p) => sum + p.totalTomatoes, 0);
+  const dayProjects = projects.filter(p => p.plannedDate === selectedDate);
+
+  const allocatedBricks = dayProjects.reduce((sum, p) => sum + p.totalTomatoes, 0);
   const budgetRemaining = dailyBudget - allocatedBricks;
   const budgetPct = Math.min(100, Math.round((allocatedBricks / dailyBudget) * 100));
   const overBudget = allocatedBricks > dailyBudget;
 
+  const headerLabel = formatDateLabel(selectedDate);
+  const headerSubtitle = formatDateSubtitle(selectedDate);
+
   return (
     <div className="flex flex-col gap-4 p-4 pb-6">
 
-      {/* Header */}
+      <DateStrip selectedDate={selectedDate} onDateChange={onDateChange} />
+
       <div>
-        <h2 className="text-2xl font-black">Today's Battle Plan</h2>
+        <h2 className="text-2xl font-black">{headerLabel}</h2>
         <p className="text-sm font-semibold text-base-content/50 mt-0.5 italic">
-          What will you build today?
+          {headerSubtitle}
         </p>
       </div>
 
-      {/* Daily Budget Card */}
       <div className="card bg-base-200 shadow-sm">
         <div className="card-body p-4 gap-3">
           <div className="flex items-center justify-between">
@@ -86,22 +95,15 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                   : `${budgetRemaining} bricks left to assign`}
               </div>
             </div>
-            {/* Budget adjuster */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => onSetBudget(Math.max(1, dailyBudget - 1))}
-                className="btn btn-circle btn-xs btn-outline font-black"
-              >
+              <button onClick={() => onSetBudget(Math.max(1, dailyBudget - 1))} className="btn btn-circle btn-xs btn-outline font-black">
                 <Minus size={12} />
               </button>
               <div className="text-center">
                 <div className="text-2xl font-black tabular-nums leading-none">{dailyBudget}</div>
                 <div className="text-xs font-bold text-base-content/40">budget</div>
               </div>
-              <button
-                onClick={() => onSetBudget(Math.min(20, dailyBudget + 1))}
-                className="btn btn-circle btn-xs btn-outline font-black"
-              >
+              <button onClick={() => onSetBudget(Math.min(20, dailyBudget + 1))} className="btn btn-circle btn-xs btn-outline font-black">
                 <Plus size={12} />
               </button>
             </div>
@@ -112,22 +114,17 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
             max={100}
           />
           <div className="flex justify-between text-xs font-bold text-base-content/40">
-            <span>{allocatedBricks} assigned · {projects.length} project{projects.length !== 1 ? 's' : ''}</span>
+            <span>{allocatedBricks} assigned · {dayProjects.length} project{dayProjects.length !== 1 ? 's' : ''}</span>
             <span>{dailyBudget} total ({dailyBudget * 25} min)</span>
           </div>
         </div>
       </div>
 
-      {/* Add Project Button */}
-      <button
-        onClick={() => setShowModal(true)}
-        className="btn btn-outline btn-primary w-full font-extrabold gap-2"
-      >
+      <button onClick={() => setShowModal(true)} className="btn btn-outline btn-primary w-full font-extrabold gap-2">
         <Plus size={18} /> Add Project
       </button>
 
-      {/* Empty state */}
-      {projects.length === 0 && (
+      {dayProjects.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
           <div className="text-6xl">🧱</div>
           <div className="font-black text-xl">Your wall doesn't build itself.</div>
@@ -137,8 +134,7 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
         </div>
       )}
 
-      {/* Project cards */}
-      {projects.map(project => {
+      {dayProjects.map(project => {
         const projTasks = tasks.filter(t => t.projectId === project.id);
         const doneTasks = projTasks.filter(t => t.done).length;
         const isActive = project.id === activeProjectId;
@@ -146,49 +142,31 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
         const remaining = project.totalTomatoes - project.completedTomatoes;
 
         return (
-          <div
-            key={project.id}
-            className={`card bg-base-200 shadow-md transition-all ${isActive ? 'ring-2 ring-primary' : ''}`}
-          >
+          <div key={project.id} className={`card bg-base-200 shadow-md transition-all ${isActive ? 'ring-2 ring-primary' : ''}`}>
             <div className="card-body p-4 gap-3">
-              {/* Title row */}
               <div className="flex items-start gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    {isActive && (
-                      <span className="badge badge-primary badge-sm font-extrabold">ACTIVE</span>
-                    )}
+                    {isActive && <span className="badge badge-primary badge-sm font-extrabold">ACTIVE</span>}
                     <span className="font-extrabold text-lg leading-tight">{project.name}</span>
                   </div>
                 </div>
                 <div className="flex gap-1 shrink-0">
-                  <button
-                    onClick={() => onSetActive(project.id)}
-                    className={`btn btn-xs font-extrabold gap-1 ${isActive ? 'btn-success' : 'btn-outline'}`}
-                  >
+                  <button onClick={() => onSetActive(project.id)} className={`btn btn-xs font-extrabold gap-1 ${isActive ? 'btn-success' : 'btn-outline'}`}>
                     <Target size={11} /> {isActive ? 'Active' : 'Set Active'}
                   </button>
-                  <button
-                    onClick={() => onDeleteProject(project.id)}
-                    className="btn btn-xs btn-ghost opacity-50 hover:opacity-100 hover:text-error"
-                  >
+                  <button onClick={() => onDeleteProject(project.id)} className="btn btn-xs btn-ghost opacity-50 hover:opacity-100 hover:text-error">
                     <Trash2 size={14} />
                   </button>
                 </div>
               </div>
 
-              {/* Brick display */}
               <div className="flex flex-wrap gap-1.5">
                 {Array.from({ length: project.totalTomatoes }).map((_, i) => (
-                  <Brick
-                    key={i}
-                    size={18}
-                    done={i < project.completedTomatoes}
-                  />
+                  <Brick key={i} size={18} done={i < project.completedTomatoes} />
                 ))}
               </div>
 
-              {/* Stats + brick controls */}
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="text-sm font-extrabold">
                   <span className="text-error text-base">{remaining}</span>
@@ -201,21 +179,16 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                     onClick={() => onUpdateTomatoes(project.id, Math.max(project.completedTomatoes + 1, project.totalTomatoes - 1))}
                     disabled={project.totalTomatoes <= project.completedTomatoes + 1}
                     className="btn btn-xs btn-outline font-black w-7 h-7 min-h-0 p-0"
-                  >
-                    −
-                  </button>
+                  >−</button>
                   <span className="font-black w-6 text-center text-sm tabular-nums">{project.totalTomatoes}</span>
                   <button
                     onClick={() => onUpdateTomatoes(project.id, Math.min(12, project.totalTomatoes + 1))}
                     disabled={project.totalTomatoes >= 12}
                     className="btn btn-xs btn-outline font-black w-7 h-7 min-h-0 p-0"
-                  >
-                    +
-                  </button>
+                  >+</button>
                 </div>
               </div>
 
-              {/* Task toggle */}
               <button
                 onClick={() => setExpandedId(isExpanded ? null : project.id)}
                 className="flex items-center gap-1 text-xs font-extrabold text-base-content/50 hover:text-base-content transition-colors self-start"
@@ -224,29 +197,18 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                 TASKS ({doneTasks}/{projTasks.length})
               </button>
 
-              {/* Task list */}
               {isExpanded && (
                 <div className="flex flex-col gap-2 border-t border-base-300 pt-3">
                   {projTasks.length === 0 && (
-                    <div className="text-xs font-semibold text-base-content/30 py-1">
-                      Break it down. Add your first task.
-                    </div>
+                    <div className="text-xs font-semibold text-base-content/30 py-1">Break it down. Add your first task.</div>
                   )}
                   {projTasks.map(task => (
                     <div key={task.id} className="flex items-center gap-2 group">
-                      <button
-                        onClick={() => onToggleTask(task.id)}
-                        className={`btn btn-xs btn-circle shrink-0 ${task.done ? 'btn-success' : 'btn-outline'}`}
-                      >
+                      <button onClick={() => onToggleTask(task.id)} className={`btn btn-xs btn-circle shrink-0 ${task.done ? 'btn-success' : 'btn-outline'}`}>
                         {task.done && <Check size={10} />}
                       </button>
-                      <span className={`flex-1 text-sm font-semibold ${task.done ? 'line-through opacity-40' : ''}`}>
-                        {task.text}
-                      </span>
-                      <button
-                        onClick={() => onDeleteTask(task.id)}
-                        className="btn btn-ghost btn-xs opacity-0 group-hover:opacity-60 hover:!opacity-100 text-error p-0 w-6 h-6 min-h-0"
-                      >
+                      <span className={`flex-1 text-sm font-semibold ${task.done ? 'line-through opacity-40' : ''}`}>{task.text}</span>
+                      <button onClick={() => onDeleteTask(task.id)} className="btn btn-ghost btn-xs opacity-0 group-hover:opacity-60 hover:!opacity-100 text-error p-0 w-6 h-6 min-h-0">
                         <Trash2 size={12} />
                       </button>
                     </div>
@@ -271,25 +233,18 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
         );
       })}
 
-      {/* Start Focusing CTA */}
-      {projects.length > 0 && (
+      {dayProjects.length > 0 && (
         <div className="pt-2">
-          <button
-            onClick={onStartFocusing}
-            className="btn btn-primary btn-lg w-full font-black text-lg gap-3 shadow-xl"
-          >
+          <button onClick={onStartFocusing} className="btn btn-primary btn-lg w-full font-black text-lg gap-3 shadow-xl">
             <PlayCircle size={26} />
             Enter the Arena 🧱
           </button>
           <p className="text-center text-xs font-bold text-base-content/40 mt-2">
-            {!activeProjectId
-              ? 'Set an active project, then charge forward.'
-              : 'The obstacle is the way. Let\'s go.'}
+            {!activeProjectId ? 'Set an active project, then charge forward.' : "The obstacle is the way. Let's go."}
           </p>
         </div>
       )}
 
-      {/* Daily Quote */}
       <div className="card bg-base-200 mt-2 shadow-sm">
         <div className="card-body p-4 text-center">
           <div className="text-3xl mb-2">📜</div>
@@ -306,9 +261,10 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
         <AddProjectModal
           allocatedBricks={allocatedBricks}
           budgetBricks={dailyBudget}
+          selectedDate={selectedDate}
           onClose={() => setShowModal(false)}
           onAdd={(name, bricks) => {
-            onAddProject(name, bricks);
+            onAddProject(name, bricks, selectedDate);
             setShowModal(false);
           }}
         />

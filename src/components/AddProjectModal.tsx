@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, CalendarDays } from 'lucide-react';
 import { Brick } from './Brick';
+import { todayISO, addDaysToISO, isoToDate } from '../utils/dateUtils';
 
 interface AddProjectModalProps {
   allocatedBricks: number;
   budgetBricks: number;
+  selectedDate: string;
   onClose: () => void;
   onAdd: (name: string, bricks: number) => void;
 }
@@ -12,6 +14,7 @@ interface AddProjectModalProps {
 export const AddProjectModal: React.FC<AddProjectModalProps> = ({
   allocatedBricks,
   budgetBricks,
+  selectedDate,
   onClose,
   onAdd,
 }) => {
@@ -21,6 +24,14 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({
   const remainingAfter = budgetBricks - allocatedBricks - bricks;
   const overBudget = remainingAfter < 0;
   const budgetUsedPct = Math.min(100, Math.round(((allocatedBricks + bricks) / budgetBricks) * 100));
+
+  const today = todayISO();
+  const tomorrow = addDaysToISO(today, 1);
+  const d = isoToDate(selectedDate);
+  const dateLabel =
+    selectedDate === today ? 'Today' :
+    selectedDate === tomorrow ? 'Tomorrow' :
+    d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
   function submit() {
     if (name.trim()) onAdd(name.trim(), bricks);
@@ -36,8 +47,12 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({
           </button>
         </div>
 
+        <div className="flex items-center gap-2 mb-4 bg-primary/10 rounded-xl px-3 py-2">
+          <CalendarDays size={15} className="text-primary shrink-0" />
+          <span className="text-sm font-black text-primary">Planning for: {dateLabel}</span>
+        </div>
+
         <div className="flex flex-col gap-5">
-          {/* Daily Budget Bar */}
           <div className="bg-base-200 rounded-xl p-3">
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs font-black uppercase tracking-wider text-base-content/50">Daily Budget</span>
@@ -83,18 +98,13 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({
               <button
                 onClick={() => setBricks(b => Math.max(1, b - 1))}
                 className="btn btn-circle btn-outline btn-lg font-black text-xl"
-              >
-                −
-              </button>
+              >−</button>
               <span className="text-5xl font-black w-16 text-center tabular-nums">{bricks}</span>
               <button
                 onClick={() => setBricks(b => Math.min(12, b + 1))}
                 className="btn btn-circle btn-outline btn-lg font-black text-xl"
-              >
-                +
-              </button>
+              >+</button>
             </div>
-            {/* Brick preview row */}
             <div className="flex flex-wrap gap-1.5 min-h-7">
               {Array.from({ length: bricks }).map((_, i) => (
                 <Brick key={i} size={18} />
