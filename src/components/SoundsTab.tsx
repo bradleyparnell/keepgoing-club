@@ -1,7 +1,7 @@
 import React from 'react';
 import { Volume2, Headphones, Radio } from 'lucide-react';
 import { BeatMode } from '../types';
-import { MODE_META } from '../utils/audio';
+import { MODE_META, neuroBeat } from '../utils/audio';
 
 interface SoundsTabProps {
   isPlaying: boolean;
@@ -49,6 +49,7 @@ export const SoundsTab: React.FC<SoundsTabProps> = ({
 
       {/* Master toggle */}
       <button
+        onTouchStart={() => neuroBeat.unlock()}
         onClick={onToggle}
         className={`w-full rounded-2xl p-4 flex items-center justify-between transition-all active:scale-95 shadow-lg ${
           isPlaying ? 'bg-primary text-primary-content' : 'bg-base-200'

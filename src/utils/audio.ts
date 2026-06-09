@@ -76,15 +76,33 @@ class NeuralAudioEngine {
   private _track: BeatMode = 'gamma';
   private _noiseBuf: AudioBuffer | null = null;
 
-  private ensureCtx(): AudioContext {
+  // Call this from a raw touchstart/click handler to satisfy mobile AudioContext policy
+  unlock(): void {
+    const AC = window.AudioContext || (window as any).webkitAudioContext;
     if (!this.ctx || this.ctx.state === 'closed') {
-      this.ctx = new AudioContext();
+      this.ctx = new AC();
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.value = this._volume;
       this.masterGain.connect(this.ctx.destination);
       this._noiseBuf = null;
     }
-    if (this.ctx.state === 'suspended') this.ctx.resume();
+    const state = this.ctx.state as string;
+    if (state === 'suspended' || state === 'interrupted') {
+      this.ctx.resume().catch(() => {});
+    }
+  }
+
+  private ensureCtx(): AudioContext {
+    const AC = window.AudioContext || (window as any).webkitAudioContext;
+    if (!this.ctx || this.ctx.state === 'closed') {
+      this.ctx = new AC();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.value = this._volume;
+      this.masterGain.connect(this.ctx.destination);
+      this._noiseBuf = null;
+    }
+    const state = this.ctx.state as string;
+    if (state === 'suspended' || state === 'interrupted') this.ctx.resume().catch(() => {});
     return this.ctx;
   }
 
