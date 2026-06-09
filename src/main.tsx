@@ -6,6 +6,7 @@ import { ProjectsTab } from './components/ProjectsTab';
 import { SoundsTab } from './components/SoundsTab';
 import AuthScreen from './components/AuthScreen';
 import UserMenu from './components/UserMenu';
+import OnboardingModal from './components/OnboardingModal';
 import { Tab, TimerPhase, BeatMode, Project } from './types';
 import { neuroBeat } from './utils/audio';
 import { todayISO } from './utils/dateUtils';
@@ -183,7 +184,8 @@ const AppInner: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col h-screen bg-base-100 max-w-lg mx-auto">
+    <div className="flex flex-col h-screen bg-base-100 max-w-lg mx-auto" data-theme="keepgoing">
+      <OnboardingModal />
       {/* User avatar top-right */}
       <div className="absolute top-3 right-4 z-50">
         <UserMenu />
