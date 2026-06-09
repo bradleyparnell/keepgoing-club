@@ -91,7 +91,7 @@ export default function AdminPage() {
         )}
 
         {error && (
-          <div className="bg-red-900/30 border border-red-800 rounded-lg p-4 mb-6 text-red-400 text-sm">
+          <div className="bg-orange-900/30 border border-orange-800 rounded-lg p-4 mb-6 text-orange-400 text-sm">
             {error} — Make sure you've run the profiles SQL setup in Supabase.
           </div>
         )}

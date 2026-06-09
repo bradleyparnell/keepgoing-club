@@ -24,7 +24,8 @@ export default {
           "info":             "#3b82f6",
           "success":          "#22c55e",
           "warning":          "#f59e0b",
-          "error":            "#ef4444",
+          "error":            "#ea580c",  // orange-600 (no red in this app)
+          "error-content":   "#ffffff",
         },
       },
     ],
