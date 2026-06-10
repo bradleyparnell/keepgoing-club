@@ -23,7 +23,8 @@ export default function UserMenu() {
   const handleToggle = () => {
     if (!open && btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
-      setPos({ x: r.right + 12, y: r.top });
+      // anchor bottom of menu to top of button so it opens upward
+      setPos({ x: r.right + 12, y: window.innerHeight - r.bottom });
     }
     setOpen(v => !v);
   };
@@ -35,7 +36,7 @@ export default function UserMenu() {
 
   const dropdown = open ? (
     <div
-      style={{ position: 'fixed', left: pos.x, top: pos.y, zIndex: 9999 }}
+      style={{ position: 'fixed', left: pos.x, bottom: pos.y, zIndex: 9999 }}
       className="w-56 bg-zinc-800 border border-zinc-600 rounded-xl shadow-2xl overflow-hidden ring-1 ring-white/10"
     >
       <div className="px-4 py-3 border-b border-zinc-700">
