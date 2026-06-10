@@ -7,13 +7,16 @@ export default function UserMenu() {
   const { user, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
-  const btnRef = useRef<HTMLButtonElement>(null);
+  const btnRef  = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close on outside click
+  // Close on outside click — but exclude both the button AND the dropdown itself
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (btnRef.current && btnRef.current.contains(e.target as Node)) return;
+      const t = e.target as Node;
+      if (btnRef.current?.contains(t))  return;
+      if (menuRef.current?.contains(t)) return;
       setOpen(false);
     };
     document.addEventListener('mousedown', handler);
@@ -23,19 +26,19 @@ export default function UserMenu() {
   const handleToggle = () => {
     if (!open && btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
-      // anchor bottom of menu to top of button so it opens upward
       setPos({ x: r.right + 12, y: window.innerHeight - r.bottom });
     }
     setOpen(v => !v);
   };
 
-  const avatar = user?.user_metadata?.avatar_url;
+  const avatar   = user?.user_metadata?.avatar_url;
   const initials = user?.user_metadata?.full_name
     ? user.user_metadata.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
     : user?.email?.[0].toUpperCase() ?? '?';
 
   const dropdown = open ? (
     <div
+      ref={menuRef}
       style={{ position: 'fixed', left: pos.x, bottom: pos.y, zIndex: 9999 }}
       className="w-56 bg-zinc-800 border border-zinc-600 rounded-xl shadow-2xl overflow-hidden ring-1 ring-white/10"
     >
@@ -46,6 +49,7 @@ export default function UserMenu() {
         <p className="text-zinc-400 text-xs truncate">{user?.email}</p>
       </div>
       <button
+        onMouseDown={e => e.stopPropagation()}
         onClick={() => { setOpen(false); signOut(); }}
         className="w-full flex items-center gap-2 px-4 py-3 text-zinc-300 hover:text-white hover:bg-zinc-700 transition-colors text-sm"
       >
