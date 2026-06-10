@@ -158,9 +158,20 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                   </div>
                 </div>
                 <div className="flex gap-1 shrink-0">
-                  <button onClick={() => onSetActive(project.id)} className={`btn btn-xs font-extrabold gap-1 ${isActive ? 'btn-success' : 'btn-outline'}`}>
-                    <Target size={11} /> {isActive ? 'Active' : 'Set Active'}
-                  </button>
+                  {isActive ? (
+                    <>
+                      <button onClick={onStartFocusing} className="btn btn-xs btn-primary font-extrabold gap-1">
+                        <PlayCircle size={11} /> Enter Arena
+                      </button>
+                      <button className="btn btn-xs btn-success font-extrabold gap-1 pointer-events-none">
+                        <Target size={11} /> Active
+                      </button>
+                    </>
+                  ) : (
+                    <button onClick={() => onSetActive(project.id)} className="btn btn-xs btn-outline font-extrabold gap-1">
+                      <Target size={11} /> Set Active
+                    </button>
+                  )}
                   <button onClick={() => onDeleteProject(project.id)} className="btn btn-xs btn-ghost opacity-50 hover:opacity-100 hover:text-error">
                     <Trash2 size={14} />
                   </button>
@@ -252,17 +263,7 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
         );
       })}
 
-      {dayProjects.length > 0 && (
-        <div className="pt-2">
-          <button onClick={onStartFocusing} className="btn btn-primary btn-lg w-full font-black text-lg gap-3 shadow-xl">
-            <PlayCircle size={26} />
-            Enter the Arena 🧱
-          </button>
-          <p className="text-center text-xs font-bold text-base-content/40 mt-2">
-            {!activeProjectId ? 'Set an active project, then charge forward.' : "The obstacle is the way. Let's go."}
-          </p>
-        </div>
-      )}
+
 
       <div className="card bg-base-200 mt-2 shadow-sm">
         <div className="card-body p-4 text-center">

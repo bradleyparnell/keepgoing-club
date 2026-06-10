@@ -10,6 +10,7 @@ export interface Project {
   bricks_per_day: number;
   planned_date: string;
   bricks_completed: number;
+  notes: string;
   created_at: string;
 }
 
