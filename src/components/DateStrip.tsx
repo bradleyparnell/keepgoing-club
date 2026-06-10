@@ -9,9 +9,10 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
 interface DateStripProps {
   selectedDate: string;
   onDateChange: (date: string) => void;
+  projectDates?: Set<string>; // ISO dates that have ≥1 project
 }
 
-export const DateStrip: React.FC<DateStripProps> = ({ selectedDate, onDateChange }) => {
+export const DateStrip: React.FC<DateStripProps> = ({ selectedDate, onDateChange, projectDates }) => {
   const [windowStart, setWindowStart] = useState(() => addDaysToISO(todayISO(), -1));
 
   const today = todayISO();
@@ -40,6 +41,7 @@ export const DateStrip: React.FC<DateStripProps> = ({ selectedDate, onDateChange
             const isToday = dateISO === today;
             const isSelected = dateISO === selectedDate;
             const isPast = dateISO < today;
+            const hasProjects = projectDates?.has(dateISO) ?? false;
 
             return (
               <button
@@ -62,10 +64,15 @@ export const DateStrip: React.FC<DateStripProps> = ({ selectedDate, onDateChange
                 <span className="text-base font-black leading-none tabular-nums">
                   {d.getDate()}
                 </span>
-                {isToday && (
-                  <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-primary-content/70' : 'bg-primary'}`} />
-                )}
-                {!isToday && <span className="w-1.5 h-1.5" />}
+                <span className="flex gap-0.5 items-center h-2">
+                  {isToday && (
+                    <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-primary-content/70' : 'bg-primary'}`} />
+                  )}
+                  {hasProjects && (
+                    <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-primary-content' : 'bg-orange-400'}`} />
+                  )}
+                  {!isToday && !hasProjects && <span className="w-1.5 h-1.5" />}
+                </span>
               </button>
             );
           })}

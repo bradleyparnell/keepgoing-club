@@ -73,7 +73,11 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
   return (
     <div className="flex flex-col gap-4 p-4 pb-6">
 
-      <DateStrip selectedDate={selectedDate} onDateChange={onDateChange} />
+      <DateStrip
+        selectedDate={selectedDate}
+        onDateChange={onDateChange}
+        projectDates={new Set(projects.map(p => p.plannedDate))}
+      />
 
       <div>
         <h2 className="text-2xl font-black">{headerLabel}</h2>
