@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Timer, LayoutGrid, Music, CalendarDays } from 'lucide-react';
+import { Timer, LayoutGrid, Music, CalendarDays, Trophy } from 'lucide-react';
 import { TimerTab } from './components/TimerTab';
 import { ProjectsTab } from './components/ProjectsTab';
 import { SoundsTab } from './components/SoundsTab';
@@ -15,6 +15,9 @@ import { neuroBeat } from './utils/audio';
 import { todayISO } from './utils/dateUtils';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { useProjects, useDailySettings } from './hooks/useProjects';
+import { useAchievements } from './hooks/useAchievements';
+import { AchievementToast } from './components/AchievementToast';
+import { BadgesModal } from './components/BadgesModal';
 import './index.css';
 
 const DURATIONS: Record<TimerPhase, number> = {
@@ -68,6 +71,8 @@ const AppInner: React.FC = () => {
   // Supabase data hooks
   const { projects: rawProjects, addProject, incrementBrick, deleteProject } = useProjects(selectedDate);
   const { workHours, setWorkHours } = useDailySettings();
+  const achievements = useAchievements();
+  const [showBadges, setShowBadges] = useState(false);
 
   // Pick a random nature bg image once per mount (changes on page reload)
   const [bgImage] = useState(
@@ -90,6 +95,13 @@ const AppInner: React.FC = () => {
   const [isRunning, setIsRunning]       = useState(false);
   const [sessionCount, setSessionCount] = useState(0);
   const [completed, setCompleted]       = useState(false);
+
+  // Keep a ref to projects so timer-completion callback has fresh data
+  const projectsRef = useRef(projects);
+  useEffect(() => { projectsRef.current = projects; }, [projects]);
+
+  const achievementsRef = useRef(achievements);
+  useEffect(() => { achievementsRef.current = achievements; });
 
   const phaseRef         = useRef(phase);
   const sessionCountRef  = useRef(sessionCount);
@@ -133,8 +145,11 @@ const AppInner: React.FC = () => {
       const newCount = curCount + 1;
       setSessionCount(newCount);
 
-      // ← Supabase brick increment
-      if (curProjId) incrementBrick(curProjId);
+      // ← Supabase brick increment + achievement check
+      if (curProjId) {
+        incrementBrick(curProjId);
+        achievementsRef.current.onBrickCompleted(projectsRef.current, curProjId);
+      }
 
       const nextPhase: TimerPhase = newCount % 4 === 0 ? 'longBreak' : 'shortBreak';
       setPhase(nextPhase);
@@ -186,6 +201,7 @@ const AppInner: React.FC = () => {
   // ── Project handlers (call Supabase) ────────────────────────────────────
   function handleAddProject(name: string, bricksPerDay: number, _plannedDate: string) {
     addProject(name, '#b45309', bricksPerDay);
+    achievements.onProjectCreated();
   }
   function handleDeleteProject(id: string) {
     deleteProject(id);
@@ -274,6 +290,23 @@ const AppInner: React.FC = () => {
 
       <OnboardingModal />
 
+      {/* Achievement toast */}
+      {achievements.currentBadge && (
+        <AchievementToast
+          badge={achievements.currentBadge}
+          onClose={achievements.clearCurrentBadge}
+        />
+      )}
+
+      {/* Badges modal */}
+      {showBadges && (
+        <BadgesModal
+          earnedIds={achievements.earnedIds}
+          stats={achievements.stats}
+          onClose={() => setShowBadges(false)}
+        />
+      )}
+
       {/* ── DESKTOP layout (md+) ───────────────────────────────────────── */}
       <div className="hidden md:flex fixed inset-0 z-10">
 
@@ -313,13 +346,27 @@ const AppInner: React.FC = () => {
             ))}
           </nav>
 
-          {/* Session counter */}
-          {sessionCount > 0 && (
-            <div className="mx-3 mb-3 px-4 py-3 rounded-xl bg-white/5 border border-white/[0.07]">
-              <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-1">Today</div>
-              <div className="text-primary font-black text-lg leading-none">{sessionCount} <span className="text-white/40 text-xs font-bold">bricks</span></div>
-            </div>
-          )}
+          {/* Session counter + Achievements */}
+          <div className="mx-3 mb-2 flex gap-2">
+            {sessionCount > 0 && (
+              <div className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/[0.07]">
+                <div className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-1">Today</div>
+                <div className="text-primary font-black text-lg leading-none">{sessionCount} <span className="text-white/40 text-xs font-bold">bricks</span></div>
+              </div>
+            )}
+            <button
+              onClick={() => setShowBadges(true)}
+              title="Achievements"
+              className={`flex flex-col items-center justify-center gap-1 px-3 py-3 rounded-xl border transition-all group
+                ${sessionCount > 0 ? '' : 'flex-1'}
+                bg-white/5 border-white/[0.07] hover:bg-orange-500/10 hover:border-orange-500/30`}
+            >
+              <Trophy size={18} className="text-white/30 group-hover:text-orange-400 transition-colors" />
+              {achievements.earnedIds.length > 0 && (
+                <span className="text-[9px] font-black text-orange-400 leading-none">{achievements.earnedIds.length}</span>
+              )}
+            </button>
+          </div>
 
           {/* User menu */}
           <div className="p-4 border-t border-white/[0.07]">
@@ -336,8 +383,17 @@ const AppInner: React.FC = () => {
       {/* ── MOBILE layout (< md) ──────────────────────────────────────────── */}
       <div className="md:hidden relative z-10 flex flex-col h-screen bg-[#111111] max-w-lg mx-auto">
 
-        {/* User menu top-right */}
-        <div className="absolute top-3 right-4 z-50">
+        {/* User menu + trophy top-right */}
+        <div className="absolute top-3 right-4 z-50 flex items-center gap-2">
+          <button
+            onClick={() => setShowBadges(true)}
+            className="flex items-center gap-1 px-2 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/40 transition-all group"
+          >
+            <Trophy size={16} className="text-white/30 group-hover:text-orange-400 transition-colors" />
+            {achievements.earnedIds.length > 0 && (
+              <span className="text-[10px] font-black text-orange-400">{achievements.earnedIds.length}</span>
+            )}
+          </button>
           <UserMenu />
         </div>
 

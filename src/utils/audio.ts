@@ -500,42 +500,179 @@ class NeuralAudioEngine {
     }, 2000);
   }
 
-  // CEO FLOW — cinematic Dmaj pads + heartbeat pulse + deep bass
+  // Cinematic epic boom hit — deep sub sine + noise transient
+  private scheduleEpicBoom(ctx: AudioContext, t: number, vol = 1.0): void {
+    // Sub sine with descending pitch envelope
+    const sub = ctx.createOscillator() as OscillatorNode;
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(88, t);
+    sub.frequency.exponentialRampToValueAtTime(36, t + 0.75);
+    const subG = ctx.createGain() as GainNode;
+    subG.gain.setValueAtTime(0.55 * vol, t);
+    subG.gain.exponentialRampToValueAtTime(0.001, t + 1.3);
+    sub.connect(subG);
+    subG.connect(this.masterGain!);
+    sub.start(t);
+    sub.stop(t + 1.4);
+    this.keep(sub);
+    this.keep(subG);
+
+    // Short noise transient for punch/attack texture
+    const dur = 0.16;
+    const bufLen = Math.ceil(ctx.sampleRate * dur);
+    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) d[i] = Math.random() * 2 - 1;
+    const ns = ctx.createBufferSource() as AudioBufferSourceNode;
+    ns.buffer = buf;
+    const bpf = ctx.createBiquadFilter() as BiquadFilterNode;
+    bpf.type = 'bandpass';
+    bpf.frequency.value = 155;
+    bpf.Q.value = 0.45;
+    const nsG = ctx.createGain() as GainNode;
+    nsG.gain.setValueAtTime(0.11 * vol, t);
+    nsG.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    ns.connect(bpf);
+    bpf.connect(nsG);
+    nsG.connect(this.masterGain!);
+    ns.start(t);
+    ns.stop(t + dur + 0.01);
+    this.keep(ns);
+    this.keep(bpf);
+    this.keep(nsG);
+  }
+
+  // CEO FLOW — cinematic Dm chord progression + epic percussion + sub bass + shimmer
   private startCeo(ctx: AudioContext): void {
-    // Big Dmaj chord: D3 F#3 A3 D4
-    this.addChordWithAM(ctx, [146.8, 185.0, 220.0, 293.7], 0.17, 700, 0.25, 0.06);
-    // Deep bass D2
-    const bass = this.keep(ctx.createOscillator() as OscillatorNode);
-    (bass as OscillatorNode).type = 'sine';
-    (bass as OscillatorNode).frequency.value = 73.4; // D2
-    const bassLfo = this.keep(ctx.createOscillator() as OscillatorNode);
-    (bassLfo as OscillatorNode).frequency.value = 0.06;
-    const bassLfoG = this.keep(ctx.createGain());
-    (bassLfoG as GainNode).gain.value = 0.5;
-    (bassLfo as OscillatorNode).connect(bassLfoG as GainNode);
-    (bassLfoG as GainNode).connect((bass as OscillatorNode).frequency);
-    const bassG = this.keep(ctx.createGain());
-    (bassG as GainNode).gain.setValueAtTime(0, ctx.currentTime);
-    (bassG as GainNode).gain.linearRampToValueAtTime(0.09, ctx.currentTime + 5);
-    (bass as OscillatorNode).connect(bassG as GainNode);
-    (bassG as GainNode).connect(this.masterGain!);
-    (bass as OscillatorNode).start();
-    (bassLfo as OscillatorNode).start();
-    // Heartbeat — soft kick pulse at 60 BPM (1s interval)
-    const BPM = 60;
-    const interval = 60 / BPM;
-    let nextPulse = ctx.currentTime + 2.5;
-    const pulse = () => {
+    // Dm → Bb → F → C minor progression — each chord 10s with 2s crossfades
+    // Detuned sawtooth pairs through LPF = warm string-ensemble pad sound
+    const CHORDS: number[][] = [
+      [73.4, 146.8, 220.0, 293.7],   // Dm: D2 D3 A3 D4
+      [58.3, 116.5, 174.6, 233.1],   // Bb: Bb1 Bb2 F3 Bb3
+      [87.3, 130.8, 174.6, 261.6],   // F:  F2 C3 F3 C4
+      [65.4, 130.8, 196.0, 261.6],   // C:  C2 C3 G3 C4
+    ];
+    const BASS_ROOTS = [73.4, 58.3, 87.3, 65.4]; // D2 Bb1 F2 C2
+    const CHORD_DUR  = 10;   // seconds per chord
+    const FADE_DUR   = 2;    // crossfade overlap
+    const SLOT       = CHORD_DUR - FADE_DUR; // 8s between chord starts
+    const CYCLES     = 15;   // pre-schedule 15 full cycles ≈ 8 minutes
+
+    // ── Build chord buses (detuned saw pads through LPF) ─────────────────
+    const t0 = ctx.currentTime;
+    const chordBuses = CHORDS.map(freqs => {
+      const lpf = ctx.createBiquadFilter() as BiquadFilterNode;
+      lpf.type = 'lowpass';
+      lpf.frequency.value = 680;
+      lpf.Q.value = 0.65;
+      this.keep(lpf);
+
+      const bus = ctx.createGain() as GainNode;
+      bus.gain.value = 0;
+      this.keep(bus);
+      lpf.connect(bus);
+      bus.connect(this.masterGain!);
+
+      freqs.forEach(freq => {
+        // Two slightly detuned saws per note → ensemble thickness
+        [0, 0.004].forEach(detune => {
+          const osc = ctx.createOscillator() as OscillatorNode;
+          osc.type = 'sawtooth';
+          osc.frequency.value = freq * (1 + detune);
+          const g = ctx.createGain() as GainNode;
+          g.gain.value = 0.042;
+          this.keep(osc);
+          this.keep(g);
+          osc.connect(g);
+          g.connect(lpf);
+          osc.start();
+        });
+      });
+
+      return bus;
+    });
+
+    // ── Pre-schedule all chord gain automation (CYCLES full cycles) ───────
+    for (let cycle = 0; cycle < CYCLES; cycle++) {
+      CHORDS.forEach((_, ci) => {
+        const bus = chordBuses[ci];
+        const cs  = t0 + (ci + cycle * CHORDS.length) * SLOT;
+        bus.gain.setValueAtTime(0,  cs);
+        bus.gain.linearRampToValueAtTime(1, cs + FADE_DUR);
+        bus.gain.setValueAtTime(1,  cs + CHORD_DUR - FADE_DUR);
+        bus.gain.linearRampToValueAtTime(0, cs + CHORD_DUR);
+      });
+    }
+
+    // ── Sub bass — tracks chord roots ─────────────────────────────────────
+    const bass = ctx.createOscillator() as OscillatorNode;
+    bass.type = 'sine';
+    bass.frequency.value = BASS_ROOTS[0];
+    this.keep(bass);
+    const bassG = ctx.createGain() as GainNode;
+    bassG.gain.setValueAtTime(0, t0);
+    bassG.gain.linearRampToValueAtTime(0.13, t0 + 5);
+    this.keep(bassG);
+    bass.connect(bassG);
+    bassG.connect(this.masterGain!);
+    bass.start();
+    // Schedule root changes to follow chord progression
+    for (let cycle = 0; cycle < CYCLES; cycle++) {
+      BASS_ROOTS.forEach((root, ci) => {
+        if (ci === 0 && cycle === 0) return;
+        bass.frequency.setValueAtTime(root, t0 + (ci + cycle * CHORDS.length) * SLOT + FADE_DUR * 0.4);
+      });
+    }
+
+    // ── High shimmer — very quiet sine overtones with slow LFO drift ──────
+    [659.3, 987.8, 1318.5].forEach((freq, i) => {
+      const osc = ctx.createOscillator() as OscillatorNode;
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      this.keep(osc);
+      const lfo = ctx.createOscillator() as OscillatorNode;
+      lfo.frequency.value = 0.038 + i * 0.012;
+      this.keep(lfo);
+      const lfoG = ctx.createGain() as GainNode;
+      lfoG.gain.value = 1.4;
+      this.keep(lfoG);
+      lfo.connect(lfoG);
+      lfoG.connect(osc.frequency);
+      const g = ctx.createGain() as GainNode;
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(Math.max(0.001, 0.007 - i * 0.002), t0 + 12);
+      this.keep(g);
+      osc.connect(g);
+      g.connect(this.masterGain!);
+      osc.start();
+      lfo.start();
+    });
+
+    // ── Epic percussion — 70 BPM, big hit beat 1, lighter hit beat 3 ─────
+    const beat = 60 / 70;       // ~0.857s
+    const bar  = beat * 4;      // ~3.43s
+    let nextBig   = t0 + 3.2;
+    let nextLight = t0 + 3.2 + beat * 2;
+
+    const epicTick = () => {
       if (!this._playing || this._track !== 'ceo') return;
-      while (nextPulse < ctx.currentTime + 0.2) {
-        this.scheduleKick(ctx, Math.max(ctx.currentTime + 0.005, nextPulse));
-        nextPulse += interval;
+      const LA = 0.2;
+      while (nextBig   < ctx.currentTime + LA) {
+        this.scheduleEpicBoom(ctx, Math.max(ctx.currentTime + 0.005, nextBig),   1.0);
+        nextBig   += bar;
       }
-      this._rhythmTimer = setTimeout(pulse, 100);
+      while (nextLight < ctx.currentTime + LA) {
+        this.scheduleEpicBoom(ctx, Math.max(ctx.currentTime + 0.005, nextLight), 0.38);
+        nextLight += bar;
+      }
+      this._rhythmTimer = setTimeout(epicTick, 100);
     };
-    setTimeout(pulse, 2400);
-    // Light ambient noise floor
-    this.addNoise(ctx, 0.018);
+    setTimeout(() => {
+      if (this._playing && this._track === 'ceo') epicTick();
+    }, 3100);
+
+    // Very light noise floor
+    this.addNoise(ctx, 0.010);
   }
 
   // ── Public API ────────────────────────────────────────────────────────────
