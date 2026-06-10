@@ -8,6 +8,16 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
+// The shape returned by useMonthProjects (DB columns, cast via supabase select)
+interface MonthProject {
+  id: string;
+  name: string;
+  color: string;
+  planned_date: string;
+  bricks_per_day: number;
+  bricks_completed: number;
+}
+
 function todayString(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -24,25 +34,25 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
 }) => {
   const now = new Date();
   const [viewYear, setViewYear]   = useState(now.getFullYear());
-  const [viewMonth, setViewMonth] = useState(now.getMonth() + 1); // 1-indexed
+  const [viewMonth, setViewMonth] = useState(now.getMonth() + 1);
 
-  const monthProjects = useMonthProjects(viewYear, viewMonth);
+  const rawProjects = useMonthProjects(viewYear, viewMonth) as unknown as MonthProject[];
 
-  // Group projects by date
-  const byDate = monthProjects.reduce<Record<string, typeof monthProjects>>((acc, p) => {
-    if (!acc[p.planned_date]) acc[p.planned_date] = [];
-    acc[p.planned_date].push(p);
+  // Group by date
+  const byDate = rawProjects.reduce<Record<string, MonthProject[]>>((acc, p) => {
+    const key = p.planned_date;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(p);
     return acc;
   }, {});
 
   // Build grid cells
-  const firstDow   = new Date(viewYear, viewMonth - 1, 1).getDay(); // 0=Sun
-  const daysInMon  = new Date(viewYear, viewMonth, 0).getDate();
-  const prevDays   = new Date(viewYear, viewMonth - 1, 0).getDate();
+  const firstDow  = new Date(viewYear, viewMonth - 1, 1).getDay();
+  const daysInMon = new Date(viewYear, viewMonth, 0).getDate();
+  const prevDays  = new Date(viewYear, viewMonth - 1, 0).getDate();
 
   type Cell = { dateStr: string | null; label: number; current: boolean };
   const cells: Cell[] = [];
-
   for (let i = 0; i < firstDow; i++) {
     cells.push({ dateStr: null, label: prevDays - firstDow + 1 + i, current: false });
   }
@@ -74,9 +84,9 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
     onNavigateToProjects();
   };
 
-  const totalProjects  = monthProjects.length;
-  const totalBricks    = monthProjects.reduce((s, p) => s + p.bricks_per_day, 0);
-  const activeDays     = Object.keys(byDate).length;
+  const totalProjects = rawProjects.length;
+  const totalBricksDay = rawProjects.reduce((s, p) => s + p.bricks_per_day, 0);
+  const activeDays = Object.keys(byDate).length;
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -107,9 +117,9 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
       {totalProjects > 0 && (
         <div className="grid grid-cols-3 gap-2">
           {[
-            { value: totalProjects, label: 'Projects' },
-            { value: totalBricks,   label: 'Bricks' },
-            { value: activeDays,    label: 'Active Days' },
+            { value: totalProjects,  label: 'Projects' },
+            { value: totalBricksDay, label: 'Bricks/Day' },
+            { value: activeDays,     label: 'Active Days' },
           ].map(({ value, label }) => (
             <div key={label} className="bg-base-200 rounded-xl p-3 text-center">
               <div className="text-2xl font-black text-primary">{value}</div>
@@ -122,10 +132,10 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
       {/* Calendar grid */}
       <div className="card bg-base-200 shadow-sm overflow-hidden">
 
-        {/* Day-of-week headers */}
+        {/* Day headers */}
         <div className="grid grid-cols-7 border-b border-base-300">
           {DAY_LABELS.map((d, i) => (
-            <div key={i} className="text-center text-xs font-black text-base-content/30 py-2 uppercase tracking-wider">
+            <div key={i} className="text-center text-[10px] font-black text-base-content/30 py-2 uppercase tracking-wider">
               {d}
             </div>
           ))}
@@ -134,11 +144,12 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
         {/* Cells */}
         <div className="grid grid-cols-7">
           {cells.map((cell, i) => {
+            // Ghost cells (prev/next month)
             if (!cell.current) {
               return (
                 <div
                   key={i}
-                  className="aspect-square p-1 border-r border-b border-base-300/40 flex flex-col items-center"
+                  className="min-h-[76px] p-1 border-r border-b border-base-300/40 flex flex-col items-center"
                 >
                   <span className="text-[10px] font-bold text-base-content/15 mt-1">{cell.label}</span>
                 </div>
@@ -150,18 +161,22 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
             const isToday     = dateStr === todayStr;
             const isSelected  = dateStr === selectedDate;
             const hasWork     = dayProjects.length > 0;
-            const bricksToday = dayProjects.reduce((s, p) => s + p.bricks_per_day, 0);
+
+            // bricks_per_day = daily goal; bricks_completed = done so far
+            const bricksPlanned   = dayProjects.reduce((s, p) => s + p.bricks_per_day, 0);
+            const bricksCompleted = dayProjects.reduce((s, p) => s + p.bricks_completed, 0);
+            const bricksAvailable = Math.max(0, bricksPlanned - bricksCompleted);
 
             return (
               <button
                 key={i}
                 onClick={() => handleDay(dateStr)}
-                className={`aspect-square p-1 border-r border-b border-base-300/40 transition-all hover:bg-primary/10 flex flex-col items-center ${
+                className={`min-h-[76px] p-1 border-r border-b border-base-300/40 transition-all hover:bg-primary/10 flex flex-col items-center gap-0.5 w-full ${
                   isSelected ? 'bg-primary/20 ring-1 ring-inset ring-primary/40' : ''
                 }`}
               >
                 {/* Date number */}
-                <div className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-black mt-0.5 ${
+                <div className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-black flex-shrink-0 ${
                   isToday
                     ? 'bg-primary text-primary-content'
                     : isSelected
@@ -171,22 +186,29 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
                   {cell.label}
                 </div>
 
-                {/* Dots */}
-                {hasWork && (
-                  <div className="flex flex-wrap justify-center gap-[2px] mt-0.5">
-                    {dayProjects.slice(0, 3).map((_, pi) => (
-                      <div key={pi} className="w-1.5 h-1.5 rounded-full bg-primary opacity-75" />
-                    ))}
-                    {dayProjects.length > 3 && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-base-content/25" />
-                    )}
-                  </div>
-                )}
-
-                {/* Brick count */}
-                {hasWork && (
-                  <div className="text-[9px] font-black text-primary/60 leading-none mt-0.5 hidden sm:block">
-                    {bricksToday}🧱
+                {hasWork ? (
+                  <>
+                    {/* Project dots */}
+                    <div className="flex flex-wrap justify-center gap-[2px]">
+                      {dayProjects.slice(0, 3).map((_, pi) => (
+                        <div key={pi} className="w-1.5 h-1.5 rounded-full bg-primary opacity-80" />
+                      ))}
+                      {dayProjects.length > 3 && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-base-content/25" />
+                      )}
+                    </div>
+                    {/* Bricks planned */}
+                    <div className="text-[8px] leading-tight font-black text-primary/90 text-center">
+                      🧱 {bricksPlanned} planned
+                    </div>
+                    {/* Bricks available */}
+                    <div className="text-[8px] leading-tight font-bold text-base-content/40 text-center">
+                      {bricksAvailable} avail
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-[8px] leading-tight font-bold text-base-content/25 text-center mt-0.5 px-0.5">
+                    nothing<br />planned
                   </div>
                 )}
               </button>
@@ -195,7 +217,7 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
         </div>
       </div>
 
-      {/* Legend / hint */}
+      {/* Legend */}
       <div className="flex items-center justify-center gap-4 text-xs font-bold text-base-content/30">
         <div className="flex items-center gap-1.5">
           <div className="w-4 h-4 rounded-full bg-primary" />
@@ -203,14 +225,12 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full bg-primary opacity-75" />
-          <span>Project planned</span>
+          <span>Has projects</span>
         </div>
       </div>
-
       <p className="text-center text-xs font-bold text-base-content/25 -mt-2">
         Tap any day to open its projects 🧱
       </p>
-
       <div className="h-4" />
     </div>
   );
