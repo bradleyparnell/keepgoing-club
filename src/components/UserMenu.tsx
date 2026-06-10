@@ -34,7 +34,7 @@ export default function UserMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 w-52 bg-zinc-900 border border-zinc-700 rounded-xl shadow-xl z-50 overflow-hidden">
+        <div className="absolute left-full bottom-0 ml-3 w-56 bg-zinc-800 border border-zinc-600 rounded-xl shadow-2xl z-50 overflow-hidden ring-1 ring-white/10">
           <div className="px-4 py-3 border-b border-zinc-800">
             <p className="text-white text-sm font-semibold truncate">
               {user?.user_metadata?.full_name || 'Brick layer'}
