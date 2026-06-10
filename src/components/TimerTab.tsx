@@ -58,10 +58,13 @@ const DURATIONS: Record<TimerPhase, number> = {
   longBreak:  15 * 60,
 };
 
-const PHASE_META: Record<TimerPhase, { label: string; sublabel: string; btnClass: string; textClass: string; progressClass: string }> = {
-  focus:      { label: 'EXECUTE',  sublabel: 'Lock in. Lay the brick.', btnClass: 'btn-error',   textClass: 'text-error',   progressClass: 'progress-error'   },
-  shortBreak: { label: 'REGROUP',  sublabel: 'Breathe. Stay sharp.',    btnClass: 'btn-success', textClass: 'text-success', progressClass: 'progress-success' },
-  longBreak:  { label: 'RECOVER',  sublabel: 'Earned it. Reset hard.',  btnClass: 'btn-info',    textClass: 'text-info',    progressClass: 'progress-info'    },
+const PHASE_META: Record<TimerPhase, {
+  label: string; sublabel: string;
+  btnClass: string; textClass: string; progressClass: string; ringClass: string;
+}> = {
+  focus:      { label: 'EXECUTE',  sublabel: 'Lock in. Lay the brick.', btnClass: 'btn-error',   textClass: 'text-error',   progressClass: 'progress-error',   ringClass: 'ring-error'   },
+  shortBreak: { label: 'REGROUP',  sublabel: 'Breathe. Stay sharp.',    btnClass: 'btn-success', textClass: 'text-success', progressClass: 'progress-success', ringClass: 'ring-success' },
+  longBreak:  { label: 'RECOVER',  sublabel: 'Earned it. Reset hard.',  btnClass: 'btn-info',    textClass: 'text-info',    progressClass: 'progress-info',    ringClass: 'ring-info'    },
 };
 
 function fmt(s: number): string {
@@ -77,8 +80,6 @@ export const TimerTab: React.FC<TimerTabProps> = ({
   const total = DURATIONS[phase];
   const pct = Math.round(((total - timeLeft) / total) * 100);
   const meta = PHASE_META[phase];
-
-  // Pick a verse once per phase change (stable within a session)
   const verse = useMemo(() => {
     const pool = VERSES[phase];
     return pool[Math.floor(Math.random() * pool.length)];
@@ -86,161 +87,170 @@ export const TimerTab: React.FC<TimerTabProps> = ({
   const displaySessions = Math.max(4, sessionCount + 1);
 
   return (
-    <div className="flex flex-col items-center gap-5 px-4 pt-6 pb-4">
+    /* ── Outer: stacked on mobile, two columns on desktop ── */
+    <div className="w-full h-full md:grid md:grid-cols-[3fr_2fr] md:gap-0 flex flex-col">
 
-      {/* Phase pills */}
-      <div className="flex gap-2 bg-base-200 p-1 rounded-full">
-        {(['focus', 'shortBreak', 'longBreak'] as TimerPhase[]).map(p => (
-          <button
-            key={p}
-            onClick={() => !isRunning && onChangePhase(p)}
-            className={`btn btn-sm rounded-full font-black uppercase tracking-wide text-xs transition-all ${
-              phase === p ? `${PHASE_META[p].btnClass} shadow` : 'btn-ghost text-base-content/40'
-            }`}
-          >
-            {PHASE_META[p].label}
-          </button>
-        ))}
-      </div>
+      {/* ══ LEFT PANEL — clock + controls ══════════════════════════════════ */}
+      <div className="flex flex-col items-center justify-center gap-5 px-6 pt-8 pb-6 md:border-r md:border-white/10">
 
-      {/* Timer block */}
-      <div className="flex flex-col items-center gap-1">
+        {/* Phase pills */}
+        <div className="flex gap-2 bg-base-200 p-1 rounded-full">
+          {(['focus', 'shortBreak', 'longBreak'] as TimerPhase[]).map(p => (
+            <button
+              key={p}
+              onClick={() => !isRunning && onChangePhase(p)}
+              className={`btn btn-sm rounded-full font-black uppercase tracking-wide text-xs transition-all ${
+                phase === p ? `${PHASE_META[p].btnClass} shadow` : 'btn-ghost text-base-content/40'
+              }`}
+            >
+              {PHASE_META[p].label}
+            </button>
+          ))}
+        </div>
+
+        {/* Sublabel */}
         <div className={`text-sm font-black tracking-widest uppercase ${meta.textClass}`}>
           {meta.sublabel}
         </div>
+
+        {/* Giant clock */}
         <div
-          className={`font-black tabular-nums leading-none tracking-tight transition-all ${
+          className={`font-black tabular-nums leading-none tracking-tight transition-all select-none ${
             isRunning ? 'text-base-content' : 'text-base-content/50'
           }`}
-          style={{ fontSize: 'clamp(4.5rem, 24vw, 7.5rem)' }}
+          style={{ fontSize: 'clamp(5rem, 18vw, 11rem)' }}
         >
           {fmt(timeLeft)}
         </div>
-        <div className={`text-xs font-black uppercase tracking-widest mt-1 ${meta.textClass} opacity-60`}>
+
+        {/* Phase label under clock */}
+        <div className={`text-xs font-black uppercase tracking-widest ${meta.textClass} opacity-60 -mt-3`}>
           {meta.label}
         </div>
-      </div>
 
-      {/* Progress bar */}
-      <div className="w-full max-w-xs">
-        <progress
-          className={`progress w-full h-5 rounded-full ${meta.progressClass}`}
-          value={pct}
-          max={100}
-        />
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center gap-5">
-        <button onClick={onReset} className="btn btn-ghost btn-circle btn-lg opacity-60 hover:opacity-100 active:scale-90">
-          <RotateCcw size={24} />
-        </button>
-        <button
-          onClick={isRunning ? onPause : onPlay}
-          className={`btn btn-circle shadow-xl font-black active:scale-90 ${meta.btnClass}`}
-          style={{ width: '5.5rem', height: '5.5rem' }}
-        >
-          {isRunning ? <Pause size={36} /> : <Play size={36} />}
-        </button>
-        <button onClick={onSkip} className="btn btn-ghost btn-circle btn-lg opacity-60 hover:opacity-100 active:scale-90">
-          <SkipForward size={24} />
-        </button>
-      </div>
-
-      {/* Music indicator */}
-      {musicPlaying && (
-        <div className="badge badge-primary font-black gap-1 px-3 py-3 animate-pulse uppercase tracking-wide text-xs">
-          ⚡ Neural audio active
+        {/* Progress bar */}
+        <div className="w-full max-w-md">
+          <progress
+            className={`progress w-full h-3 rounded-full ${meta.progressClass}`}
+            value={pct}
+            max={100}
+          />
         </div>
-      )}
 
-      {/* Today's reps */}
-      <div className="card bg-base-200 w-full max-w-xs shadow">
-        <div className="card-body p-4">
-          <div className="text-xs font-black uppercase tracking-widest text-base-content/40 mb-3">
-            Bricks Laid Today
+        {/* Controls */}
+        <div className="flex items-center gap-6 mt-1">
+          <button onClick={onReset} className="btn btn-ghost btn-circle btn-lg opacity-60 hover:opacity-100 active:scale-90">
+            <RotateCcw size={26} />
+          </button>
+          <button
+            onClick={isRunning ? onPause : onPlay}
+            className={`btn btn-circle shadow-2xl font-black active:scale-90 ${meta.btnClass}`}
+            style={{ width: '6rem', height: '6rem' }}
+          >
+            {isRunning ? <Pause size={40} /> : <Play size={40} />}
+          </button>
+          <button onClick={onSkip} className="btn btn-ghost btn-circle btn-lg opacity-60 hover:opacity-100 active:scale-90">
+            <SkipForward size={26} />
+          </button>
+        </div>
+
+        {/* Music indicator */}
+        {musicPlaying && (
+          <div className="badge badge-primary font-black gap-1 px-3 py-3 animate-pulse uppercase tracking-wide text-xs">
+            ⚡ Neural audio active
           </div>
-          <div className="flex gap-1.5 flex-wrap">
-            {Array.from({ length: displaySessions }).map((_, i) => (
-              <Brick
-                key={i}
-                size={18}
-                done={i < sessionCount}
-                faded={i >= sessionCount}
-              />
-            ))}
-          </div>
-          <div className="font-black mt-3 text-base">
-            {sessionCount}{' '}
-            <span className="text-base-content/40 font-semibold text-sm">
-              {sessionCount === 1 ? 'brick laid' : 'bricks laid'}
-            </span>
-          </div>
+        )}
+
+        {/* Motivational tag — desktop only, anchored to bottom of left panel */}
+        <div className="hidden md:block text-xs font-black uppercase tracking-widest text-base-content/25 text-center mt-auto pt-4">
+          {phase === 'focus'
+            ? 'No shortcuts. No excuses. Lay the brick.'
+            : phase === 'shortBreak'
+            ? 'Breathe. Hydrate. Come back stronger.'
+            : 'You earned this. Prepare for the next session.'}
         </div>
       </div>
 
-      {/* Active project */}
-      {activeProject ? (
-        <div className="card bg-base-200 w-full max-w-xs shadow ring-2 ring-error">
+      {/* ══ RIGHT PANEL — stats + project + verse ══════════════════════════ */}
+      <div className="flex flex-col gap-4 px-6 pt-6 pb-6 md:overflow-y-auto md:max-h-full">
+
+        {/* Bricks laid today */}
+        <div className="card bg-base-200 shadow">
           <div className="card-body p-4">
-            <div className="text-xs font-black uppercase tracking-widest text-error mb-1">
-              🎯 Current Target
+            <div className="text-xs font-black uppercase tracking-widest text-base-content/40 mb-3">
+              Bricks Laid Today
             </div>
-            <div className="text-xl font-black leading-tight mb-3 uppercase">
-              {activeProject.name}
-            </div>
-            <div className="flex gap-1.5 flex-wrap mb-2">
-              {Array.from({ length: activeProject.totalTomatoes }).map((_, i) => (
-                <Brick
-                  key={i}
-                  size={18}
-                  done={i < activeProject.completedTomatoes}
-                  faded={false}
-                />
+            <div className="flex gap-1.5 flex-wrap">
+              {Array.from({ length: displaySessions }).map((_, i) => (
+                <Brick key={i} size={18} done={i < sessionCount} faded={i >= sessionCount} />
               ))}
             </div>
-            <div className="font-black text-sm">
-              <span className={`text-base ${
-                activeProject.totalTomatoes - activeProject.completedTomatoes === 0
-                  ? 'text-success'
-                  : 'text-error'
-              }`}>
-                {activeProject.totalTomatoes - activeProject.completedTomatoes === 0
-                  ? '✓ WALL COMPLETE'
-                  : `${activeProject.totalTomatoes - activeProject.completedTomatoes} bricks remaining`}
+            <div className="font-black mt-3 text-base">
+              {sessionCount}{' '}
+              <span className="text-base-content/40 font-semibold text-sm">
+                {sessionCount === 1 ? 'brick laid' : 'bricks laid'}
               </span>
             </div>
           </div>
         </div>
-      ) : (
-        <button
-          onClick={onGoToProjects}
-          className="btn btn-outline btn-error font-black w-full max-w-xs uppercase tracking-wide"
-        >
-          🧱 Assign Your Target →
-        </button>
-      )}
 
-      {/* Bible verse */}
-      <div className="card bg-base-200/60 w-full max-w-xs border border-primary/20">
-        <div className="card-body p-4 gap-1">
-          <div className="text-xs font-black uppercase tracking-widest text-primary/60 mb-1">✝ Word</div>
-          <p className="text-sm font-semibold leading-snug text-base-content/80 italic">
-            "{verse.text}"
-          </p>
-          <p className="text-xs font-black uppercase tracking-widest text-primary mt-1">
-            {verse.ref}
-          </p>
+        {/* Active project */}
+        {activeProject ? (
+          <div className={`card bg-base-200 shadow ring-2 ${meta.ringClass}`}>
+            <div className="card-body p-4">
+              <div className={`text-xs font-black uppercase tracking-widest ${meta.textClass} mb-1`}>
+                🎯 Current Target
+              </div>
+              <div className="text-xl font-black leading-tight mb-3 uppercase">
+                {activeProject.name}
+              </div>
+              <div className="flex gap-1.5 flex-wrap mb-2">
+                {Array.from({ length: activeProject.totalTomatoes }).map((_, i) => (
+                  <Brick key={i} size={18} done={i < activeProject.completedTomatoes} faded={false} />
+                ))}
+              </div>
+              <div className="font-black text-sm">
+                <span className={`text-base ${
+                  activeProject.totalTomatoes - activeProject.completedTomatoes === 0
+                    ? 'text-success' : meta.textClass
+                }`}>
+                  {activeProject.totalTomatoes - activeProject.completedTomatoes === 0
+                    ? '✓ WALL COMPLETE'
+                    : `${activeProject.totalTomatoes - activeProject.completedTomatoes} bricks remaining`}
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={onGoToProjects}
+            className="btn btn-outline btn-error font-black w-full uppercase tracking-wide"
+          >
+            🧱 Assign Your Target →
+          </button>
+        )}
+
+        {/* Bible verse */}
+        <div className="card bg-base-200/60 border border-primary/20">
+          <div className="card-body p-4 gap-1">
+            <div className="text-xs font-black uppercase tracking-widest text-primary/60 mb-1">✝ Word</div>
+            <p className="text-sm font-semibold leading-snug text-base-content/80 italic">
+              "{verse.text}"
+            </p>
+            <p className="text-xs font-black uppercase tracking-widest text-primary mt-1">
+              {verse.ref}
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Motivational tag */}
-      <div className="text-xs font-black uppercase tracking-widest text-base-content/25 pb-2 text-center">
-        {phase === 'focus'
-          ? 'No shortcuts. No excuses. Lay the brick.'
-          : phase === 'shortBreak'
-          ? 'Breathe. Hydrate. Come back stronger.'
-          : 'You earned this. Prepare for the next session.'}
+        {/* Motivational tag — mobile only */}
+        <div className="md:hidden text-xs font-black uppercase tracking-widest text-base-content/25 pb-2 text-center">
+          {phase === 'focus'
+            ? 'No shortcuts. No excuses. Lay the brick.'
+            : phase === 'shortBreak'
+            ? 'Breathe. Hydrate. Come back stronger.'
+            : 'You earned this. Prepare for the next session.'}
+        </div>
       </div>
     </div>
   );
