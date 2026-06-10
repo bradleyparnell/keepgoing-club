@@ -25,20 +25,38 @@ const steps = [
   },
 ];
 
-export default function OnboardingModal({ userId }: { userId?: string }) {
+interface Props {
+  userId?: string;
+  forceOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function OnboardingModal({ userId, forceOpen, onClose }: Props) {
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
 
+  // Auto-show on first login
   useEffect(() => {
+    if (forceOpen) return; // controlled externally
     if (!userId) return;
     if (!localStorage.getItem(storageKey(userId))) {
       setVisible(true);
+      setStep(0);
     }
-  }, [userId]);
+  }, [userId, forceOpen]);
+
+  // Force open from parent
+  useEffect(() => {
+    if (forceOpen) {
+      setVisible(true);
+      setStep(0);
+    }
+  }, [forceOpen]);
 
   function dismiss() {
-    localStorage.setItem(storageKey(userId), '1');
+    if (userId) localStorage.setItem(storageKey(userId), '1');
     setVisible(false);
+    onClose?.();
   }
 
   if (!visible) return null;
@@ -60,7 +78,7 @@ export default function OnboardingModal({ userId }: { userId?: string }) {
           </div>
         )}
 
-        {/* Header */}
+        {/* Step content */}
         <div className="text-center mb-6">
           <div className="text-5xl mb-3">{current.icon}</div>
           <h2 className="text-white font-black text-xl">{current.title}</h2>

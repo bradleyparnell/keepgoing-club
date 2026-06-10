@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Timer, LayoutGrid, Music, CalendarDays, Trophy } from 'lucide-react';
+import { Timer, LayoutGrid, Music, CalendarDays, Trophy, HelpCircle } from 'lucide-react';
 import { TimerTab } from './components/TimerTab';
 import { ProjectsTab } from './components/ProjectsTab';
 import { SoundsTab } from './components/SoundsTab';
@@ -76,6 +76,7 @@ const AppInner: React.FC = () => {
   const { workHours, setWorkHours } = useDailySettings();
   const achievements = useAchievements();
   const [showBadges, setShowBadges] = useState(false);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   // Pick a random nature bg image once per mount (changes on page reload)
   const [bgImage] = useState(
@@ -291,7 +292,11 @@ const AppInner: React.FC = () => {
       {/* Background overlay */}
       <div className="fixed inset-0 bg-black/55 pointer-events-none z-0" />
 
-      <OnboardingModal userId={user?.id} />
+      <OnboardingModal
+        userId={user?.id}
+        forceOpen={showHowItWorks}
+        onClose={() => setShowHowItWorks(false)}
+      />
 
       {/* Achievement toast */}
       {achievements.currentBadge && (
@@ -371,6 +376,17 @@ const AppInner: React.FC = () => {
             </button>
           </div>
 
+          {/* How it works */}
+          <div className="px-3 pb-2">
+            <button
+              onClick={() => setShowHowItWorks(true)}
+              className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-white/30 hover:text-white/60 hover:bg-white/5 border border-transparent transition-all text-sm font-semibold"
+            >
+              <HelpCircle size={16} />
+              <span>How it works</span>
+            </button>
+          </div>
+
           {/* User menu */}
           <div className="p-4 border-t border-white/[0.07]">
             <UserMenu />
@@ -388,6 +404,13 @@ const AppInner: React.FC = () => {
 
         {/* User menu + trophy top-right */}
         <div className="absolute top-3 right-4 z-50 flex items-center gap-2">
+          <button
+            onClick={() => setShowHowItWorks(true)}
+            className="flex items-center gap-1 px-2 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/40 transition-all group"
+            title="How it works"
+          >
+            <HelpCircle size={16} className="text-white/30 group-hover:text-orange-400 transition-colors" />
+          </button>
           <button
             onClick={() => setShowBadges(true)}
             className="flex items-center gap-1 px-2 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/40 transition-all group"
