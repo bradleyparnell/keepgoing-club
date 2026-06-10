@@ -376,6 +376,19 @@ const AppInner: React.FC = () => {
             </button>
           </div>
 
+          {/* Admin button — brad only */}
+          {user?.email === 'brad@genierocket.com' && (
+            <div className="px-3 pb-1">
+              <a
+                href="/admin"
+                className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-orange-500/60 hover:text-orange-400 hover:bg-orange-500/10 border border-transparent transition-all text-sm font-semibold"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a5 5 0 1 0 5 5A5 5 0 0 0 12 2zm0 8a3 3 0 1 1 3-3 3 3 0 0 1-3 3zm9 11v-1a7 7 0 0 0-7-7h-4a7 7 0 0 0-7 7v1"/></svg>
+                <span>Admin</span>
+              </a>
+            </div>
+          )}
+
           {/* How it works */}
           <div className="px-3 pb-2">
             <button
