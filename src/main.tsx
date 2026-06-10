@@ -288,7 +288,7 @@ const AppInner: React.FC = () => {
       {/* Background overlay */}
       <div className="fixed inset-0 bg-black/55 pointer-events-none z-0" />
 
-      <OnboardingModal />
+      <OnboardingModal userId={user.id} />
 
       {/* Achievement toast */}
       {achievements.currentBadge && (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const STORAGE_KEY = 'kg_onboarded';
+const storageKey = (userId?: string) => userId ? `kg_onboarded_${userId}` : 'kg_onboarded';
 
 const steps = [
   {
@@ -25,18 +25,19 @@ const steps = [
   },
 ];
 
-export default function OnboardingModal() {
+export default function OnboardingModal({ userId }: { userId?: string }) {
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    if (!localStorage.getItem(STORAGE_KEY)) {
+    if (!userId) return;
+    if (!localStorage.getItem(storageKey(userId))) {
       setVisible(true);
     }
-  }, []);
+  }, [userId]);
 
   function dismiss() {
-    localStorage.setItem(STORAGE_KEY, '1');
+    localStorage.setItem(storageKey(userId), '1');
     setVisible(false);
   }
 
