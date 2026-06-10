@@ -82,7 +82,7 @@ export default function AuthScreen() {
       <div className="relative w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-32 h-32 mb-4">
+          <div className="inline-flex items-center justify-center w-32 h-32 mb-2">
             <img
               src="/brick-logo.png"
               alt="Keep Going bricks logo"
@@ -90,7 +90,7 @@ export default function AuthScreen() {
             />
           </div>
           <h1 className="text-4xl font-black text-white tracking-tight drop-shadow-lg">Keep Going</h1>
-          <p className="text-white/70 text-sm mt-2 drop-shadow">Get more tasks done in less time — with more focus.</p>
+          <p className="text-white/70 text-sm mt-2 drop-shadow">Get more tasks done in less time, with more focus.</p>
         </div>
 
         {/* Card — frosted dark glass */}
