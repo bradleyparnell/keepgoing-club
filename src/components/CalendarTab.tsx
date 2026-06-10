@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useMonthProjects } from '../hooks/useProjects';
 
-const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-// The shape returned by useMonthProjects (DB columns, cast via supabase select)
 interface MonthProject {
   id: string;
   name: string;
@@ -84,9 +83,11 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
     onNavigateToProjects();
   };
 
-  const totalProjects = rawProjects.length;
-  const totalBricksDay = rawProjects.reduce((s, p) => s + p.bricks_per_day, 0);
-  const activeDays = Object.keys(byDate).length;
+  const totalProjects  = rawProjects.length;
+  const totalPlanned   = rawProjects.reduce((s, p) => s + p.bricks_per_day, 0);
+  const totalCompleted = rawProjects.reduce((s, p) => s + p.bricks_completed, 0);
+  const activeDays     = Object.keys(byDate).length;
+  const monthPct       = totalPlanned > 0 ? Math.round((totalCompleted / totalPlanned) * 100) : 0;
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -115,17 +116,33 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
 
       {/* Month stats */}
       {totalProjects > 0 && (
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { value: totalProjects,  label: 'Projects' },
-            { value: totalBricksDay, label: 'Bricks/Day' },
-            { value: activeDays,     label: 'Active Days' },
-          ].map(({ value, label }) => (
-            <div key={label} className="bg-base-200 rounded-xl p-3 text-center">
-              <div className="text-2xl font-black text-primary">{value}</div>
-              <div className="text-xs font-black text-base-content/40 uppercase tracking-wider mt-0.5">{label}</div>
+        <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { value: totalProjects,  label: 'Projects' },
+              { value: totalPlanned,   label: 'Planned 🧱' },
+              { value: totalCompleted, label: 'Done ✅' },
+              { value: activeDays,     label: 'Days' },
+            ].map(({ value, label }) => (
+              <div key={label} className="bg-base-200 rounded-xl p-3 text-center">
+                <div className="text-xl font-black text-primary">{value}</div>
+                <div className="text-[10px] font-black text-base-content/40 uppercase tracking-wider mt-0.5 leading-tight">{label}</div>
+              </div>
+            ))}
+          </div>
+          {/* Month progress bar */}
+          <div className="bg-base-200 rounded-xl p-3">
+            <div className="flex justify-between items-center mb-1.5">
+              <span className="text-xs font-black text-base-content/50 uppercase tracking-wider">Month Progress</span>
+              <span className="text-sm font-black text-primary">{monthPct}%</span>
             </div>
-          ))}
+            <div className="w-full bg-base-300 rounded-full h-2.5">
+              <div
+                className="bg-primary rounded-full h-2.5 transition-all duration-500"
+                style={{ width: `${monthPct}%` }}
+              />
+            </div>
+          </div>
         </div>
       )}
 
@@ -135,8 +152,8 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
         {/* Day headers */}
         <div className="grid grid-cols-7 border-b border-base-300">
           {DAY_LABELS.map((d, i) => (
-            <div key={i} className="text-center text-[10px] font-black text-base-content/30 py-2 uppercase tracking-wider">
-              {d}
+            <div key={i} className="text-center text-[10px] font-black text-base-content/40 py-2 uppercase tracking-wider">
+              {d.charAt(0)}
             </div>
           ))}
         </div>
@@ -149,7 +166,7 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
               return (
                 <div
                   key={i}
-                  className="min-h-[76px] p-1 border-r border-b border-base-300/40 flex flex-col items-center"
+                  className="min-h-[90px] p-1 border-r border-b border-base-300/40 flex flex-col items-center"
                 >
                   <span className="text-[10px] font-bold text-base-content/15 mt-1">{cell.label}</span>
                 </div>
@@ -162,21 +179,26 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
             const isSelected  = dateStr === selectedDate;
             const hasWork     = dayProjects.length > 0;
 
-            // bricks_per_day = daily goal; bricks_completed = done so far
             const bricksPlanned   = dayProjects.reduce((s, p) => s + p.bricks_per_day, 0);
             const bricksCompleted = dayProjects.reduce((s, p) => s + p.bricks_completed, 0);
-            const bricksAvailable = Math.max(0, bricksPlanned - bricksCompleted);
+            const bricksAvail     = Math.max(0, bricksPlanned - bricksCompleted);
+            const isComplete      = hasWork && bricksAvail === 0;
+            const isInProgress    = hasWork && bricksCompleted > 0 && !isComplete;
+            const pct             = bricksPlanned > 0 ? Math.min(100, Math.round((bricksCompleted / bricksPlanned) * 100)) : 0;
+
+            let cellBg = '';
+            if (isSelected)   cellBg = 'bg-primary/20 ring-1 ring-inset ring-primary/40';
+            else if (isComplete)   cellBg = 'bg-emerald-900/20';
+            else if (isInProgress) cellBg = 'bg-primary/10';
 
             return (
               <button
                 key={i}
                 onClick={() => handleDay(dateStr)}
-                className={`min-h-[76px] p-1 border-r border-b border-base-300/40 transition-all hover:bg-primary/10 flex flex-col items-center gap-0.5 w-full ${
-                  isSelected ? 'bg-primary/20 ring-1 ring-inset ring-primary/40' : ''
-                }`}
+                className={`min-h-[90px] p-1.5 border-r border-b border-base-300/40 transition-all hover:bg-primary/10 flex flex-col items-center gap-1 w-full group ${cellBg}`}
               >
                 {/* Date number */}
-                <div className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-black flex-shrink-0 ${
+                <div className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-black flex-shrink-0 transition-all ${
                   isToday
                     ? 'bg-primary text-primary-content'
                     : isSelected
@@ -188,27 +210,29 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
 
                 {hasWork ? (
                   <>
-                    {/* Project dots */}
-                    <div className="flex flex-wrap justify-center gap-[2px]">
-                      {dayProjects.slice(0, 3).map((_, pi) => (
-                        <div key={pi} className="w-1.5 h-1.5 rounded-full bg-primary opacity-80" />
-                      ))}
-                      {dayProjects.length > 3 && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-base-content/25" />
-                      )}
+                    {/* Bricks info */}
+                    <div className="text-[11px] leading-tight font-black text-primary text-center">
+                      🧱 {bricksPlanned}
                     </div>
-                    {/* Bricks planned */}
-                    <div className="text-[8px] leading-tight font-black text-primary/90 text-center">
-                      🧱 {bricksPlanned} planned
+                    <div className="text-[11px] leading-tight font-bold text-base-content/50 text-center">
+                      {bricksAvail} left
                     </div>
-                    {/* Bricks available */}
-                    <div className="text-[8px] leading-tight font-bold text-base-content/40 text-center">
-                      {bricksAvailable} avail
+                    {/* Mini progress bar */}
+                    <div className="w-full px-1 mt-auto">
+                      <div className="w-full bg-base-300 rounded-full h-1.5">
+                        <div
+                          className={`rounded-full h-1.5 transition-all ${isComplete ? 'bg-emerald-500' : 'bg-primary'}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
                     </div>
                   </>
                 ) : (
-                  <div className="text-[8px] leading-tight font-bold text-base-content/25 text-center mt-0.5 px-0.5">
-                    nothing<br />planned
+                  <div className="flex flex-col items-center gap-1 mt-auto mb-auto">
+                    <div className="text-[11px] leading-tight font-bold text-base-content/25 text-center">
+                      nothing<br />planned
+                    </div>
+                    <Plus size={10} className="text-base-content/20 group-hover:text-primary/60 transition-colors" />
                   </div>
                 )}
               </button>
@@ -218,14 +242,18 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
       </div>
 
       {/* Legend */}
-      <div className="flex items-center justify-center gap-4 text-xs font-bold text-base-content/30">
+      <div className="flex items-center justify-center gap-5 text-xs font-bold text-base-content/40 flex-wrap">
         <div className="flex items-center gap-1.5">
           <div className="w-4 h-4 rounded-full bg-primary" />
           <span>Today</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-primary opacity-75" />
-          <span>Has projects</span>
+          <div className="w-3 h-3 rounded bg-primary/20" />
+          <span>In progress</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-emerald-900/40" />
+          <span>Complete ✅</span>
         </div>
       </div>
       <p className="text-center text-xs font-bold text-base-content/25 -mt-2">
