@@ -1,7 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 
 type Mode = 'signin' | 'signup' | 'reset';
+
+const BG_IMAGES = [
+  'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1920&q=80',
+  'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1920&q=80',
+  'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=1920&q=80',
+  'https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&w=1920&q=80',
+  'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1920&q=80',
+  'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1920&q=80',
+  'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?auto=format&fit=crop&w=1920&q=80',
+  'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80',
+  'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?auto=format&fit=crop&w=1920&q=80',
+  'https://images.unsplash.com/photo-1540390769625-2fc3f8b1d50c?auto=format&fit=crop&w=1920&q=80',
+];
 
 export default function AuthScreen() {
   const [mode, setMode] = useState<Mode>('signin');
@@ -11,6 +24,11 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+
+  const bg = useMemo(
+    () => BG_IMAGES[Math.floor(Math.random() * BG_IMAGES.length)],
+    []
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,29 +68,40 @@ export default function AuthScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        backgroundImage: `url(${bg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {/* Subtle dark overlay */}
+      <div className="absolute inset-0 bg-black/50" />
+
+      <div className="relative w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 mb-4">
-            <svg viewBox="0 0 40 28" className="w-14 h-10" fill="none">
-              <rect x="1" y="1" width="17" height="11" rx="1.5" fill="#b45309" stroke="#92400e" strokeWidth="0.8"/>
-              <line x1="1" y1="4.5" x2="18" y2="4.5" stroke="#92400e" strokeWidth="0.5" opacity="0.6"/>
-              <line x1="1" y1="8.5" x2="18" y2="8.5" stroke="#92400e" strokeWidth="0.5" opacity="0.6"/>
-              <line x1="6" y1="1" x2="6" y2="12" stroke="#92400e" strokeWidth="0.4" opacity="0.4"/>
-              <line x1="12" y1="1" x2="12" y2="12" stroke="#92400e" strokeWidth="0.4" opacity="0.4"/>
-              <path d="M7 5 Q9 3 11 6" stroke="#78350f" strokeWidth="0.6" fill="none" opacity="0.5"/>
-              <rect x="20" y="1" width="19" height="11" rx="1.5" fill="#b45309" stroke="#92400e" strokeWidth="0.8"/>
-              <rect x="1" y="15" width="19" height="11" rx="1.5" fill="#b45309" stroke="#92400e" strokeWidth="0.8"/>
-              <rect x="22" y="15" width="17" height="11" rx="1.5" fill="#b45309" stroke="#92400e" strokeWidth="0.8"/>
-            </svg>
+          <div className="inline-flex items-center justify-center w-20 h-20 mb-4">
+            <img
+              src="/brick-logo.png"
+              alt="Keep Going bricks logo"
+              className="w-20 h-20 object-contain drop-shadow-[0_0_16px_rgba(194,65,12,0.7)]"
+            />
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight">keepgoing.club</h1>
-          <p className="text-zinc-500 text-sm mt-1">Get more tasks done in less time — with more focus.</p>
+          <h1 className="text-4xl font-black text-white tracking-tight drop-shadow-lg">Keep Going</h1>
+          <p className="text-white/70 text-sm mt-2 drop-shadow">Get more tasks done in less time — with more focus.</p>
         </div>
 
-        {/* Card */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+        {/* Card — frosted dark glass */}
+        <div
+          className="rounded-2xl p-6 border border-white/10"
+          style={{
+            background: 'rgba(17,17,17,0.75)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+          }}
+        >
           <h2 className="text-lg font-bold text-white mb-5">
             {mode === 'signin' && 'Welcome back'}
             {mode === 'signup' && 'Create your account'}
@@ -97,9 +126,9 @@ export default function AuthScreen() {
               </button>
 
               <div className="flex items-center gap-3 mb-4">
-                <div className="flex-1 h-px bg-zinc-800" />
-                <span className="text-zinc-600 text-xs">or</span>
-                <div className="flex-1 h-px bg-zinc-800" />
+                <div className="flex-1 h-px bg-white/10" />
+                <span className="text-white/40 text-xs">or</span>
+                <div className="flex-1 h-px bg-white/10" />
               </div>
             </>
           )}
@@ -113,7 +142,7 @@ export default function AuthScreen() {
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
-                className="w-full bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-600"
+                className="w-full bg-white/10 border border-white/15 text-white placeholder-white/40 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-orange-500"
               />
             )}
             <input
@@ -122,7 +151,7 @@ export default function AuthScreen() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
-              className="w-full bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-600"
+              className="w-full bg-white/10 border border-white/15 text-white placeholder-white/40 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-orange-500"
             />
             {mode !== 'reset' && (
               <input
@@ -132,7 +161,7 @@ export default function AuthScreen() {
                 onChange={e => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-600"
+                className="w-full bg-white/10 border border-white/15 text-white placeholder-white/40 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-orange-500"
               />
             )}
 
@@ -142,7 +171,7 @@ export default function AuthScreen() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-amber-700 hover:bg-amber-600 text-white font-bold py-2.5 px-4 rounded-xl transition-colors disabled:opacity-50"
+              className="w-full bg-orange-700 hover:bg-orange-600 text-white font-bold py-2.5 px-4 rounded-xl transition-colors disabled:opacity-50"
             >
               {loading ? '...' : mode === 'signin' ? 'Sign in' : mode === 'signup' ? 'Create account' : 'Send reset link'}
             </button>
@@ -152,21 +181,21 @@ export default function AuthScreen() {
           <div className="mt-4 text-center text-sm space-y-2">
             {mode === 'signin' && (
               <>
-                <button onClick={() => setMode('signup')} className="text-amber-500 hover:text-amber-400 block w-full">
+                <button onClick={() => setMode('signup')} className="text-orange-400 hover:text-orange-300 block w-full">
                   No account? Sign up free
                 </button>
-                <button onClick={() => setMode('reset')} className="text-zinc-500 hover:text-zinc-400 block w-full">
+                <button onClick={() => setMode('reset')} className="text-white/40 hover:text-white/60 block w-full">
                   Forgot password?
                 </button>
               </>
             )}
             {mode === 'signup' && (
-              <button onClick={() => setMode('signin')} className="text-amber-500 hover:text-amber-400">
+              <button onClick={() => setMode('signin')} className="text-orange-400 hover:text-orange-300">
                 Already have an account? Sign in
               </button>
             )}
             {mode === 'reset' && (
-              <button onClick={() => setMode('signin')} className="text-amber-500 hover:text-amber-400">
+              <button onClick={() => setMode('signin')} className="text-orange-400 hover:text-orange-300">
                 Back to sign in
               </button>
             )}
