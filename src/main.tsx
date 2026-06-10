@@ -68,6 +68,9 @@ const AppInner: React.FC = () => {
   const [selectedDate, setSelectedDate]       = useState(todayISO);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
+  // Auth
+  const { user } = useAuth();
+
   // Supabase data hooks
   const { projects: rawProjects, addProject, incrementBrick, deleteProject } = useProjects(selectedDate);
   const { workHours, setWorkHours } = useDailySettings();
@@ -288,7 +291,7 @@ const AppInner: React.FC = () => {
       {/* Background overlay */}
       <div className="fixed inset-0 bg-black/55 pointer-events-none z-0" />
 
-      <OnboardingModal userId={user.id} />
+      <OnboardingModal userId={user?.id} />
 
       {/* Achievement toast */}
       {achievements.currentBadge && (
