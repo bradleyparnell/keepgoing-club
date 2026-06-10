@@ -53,7 +53,35 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [taskInputs, setTaskInputs] = useState<Record<string, string>>({});
-  const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
+  type NoteEntry = { ts: string; text: string };
+  const parseNotes = (raw: string): NoteEntry[] => {
+    if (!raw) return [];
+    try { const p = JSON.parse(raw); if (Array.isArray(p)) return p; } catch {}
+    return [{ ts: '', text: raw }];
+  };
+  const [notesInput, setNotesInput] = useState<Record<string, string>>({});
+  const [notesLogs, setNotesLogs] = useState<Record<string, NoteEntry[]>>({});
+
+  const saveProjectNote = (projectId: string, projectNotes: string) => {
+    const text = (notesInput[projectId] ?? '').trim();
+    if (!text) return;
+    const existing = notesLogs[projectId] ?? parseNotes(projectNotes);
+    const entry: NoteEntry = { ts: new Date().toISOString(), text };
+    const updated = [entry, ...existing];
+    setNotesLogs(prev => ({ ...prev, [projectId]: updated }));
+    setNotesInput(prev => ({ ...prev, [projectId]: '' }));
+    onUpdateNotes(projectId, JSON.stringify(updated));
+  };
+  const deleteProjectNote = (projectId: string, idx: number, projectNotes: string) => {
+    const existing = notesLogs[projectId] ?? parseNotes(projectNotes);
+    const updated = existing.filter((_, i) => i !== idx);
+    setNotesLogs(prev => ({ ...prev, [projectId]: updated }));
+    onUpdateNotes(projectId, JSON.stringify(updated));
+  };
+  const fmtTs = (ts: string) => {
+    if (!ts) return 'Saved note';
+    return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  };
 
   function addTask(projectId: string) {
     const text = (taskInputs[projectId] || '').trim();
@@ -247,14 +275,40 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                   {/* Notes */}
                   <div className="border-t border-base-300 pt-3 mt-1">
                     <div className="text-xs font-black uppercase tracking-widest text-base-content/40 mb-2">📝 Notes</div>
-                    <textarea
-                      className="textarea textarea-bordered w-full text-sm font-medium resize-none bg-base-100/50 focus:outline-none focus:border-primary/50"
-                      placeholder="Capture thoughts, blockers, next steps…"
-                      rows={3}
-                      value={notesDraft[project.id] ?? project.notes ?? ''}
-                      onChange={e => setNotesDraft(prev => ({ ...prev, [project.id]: e.target.value }))}
-                      onBlur={() => onUpdateNotes(project.id, notesDraft[project.id] ?? project.notes ?? '')}
-                    />
+                    <div className="flex flex-col gap-2">
+                      <textarea
+                        className="textarea textarea-bordered w-full text-sm font-medium resize-none bg-base-100/50 focus:outline-none focus:border-primary/50"
+                        placeholder="Capture thoughts, blockers, next steps…"
+                        rows={2}
+                        value={notesInput[project.id] ?? ''}
+                        onChange={e => setNotesInput(prev => ({ ...prev, [project.id]: e.target.value }))}
+                        onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) saveProjectNote(project.id, project.notes ?? ''); }}
+                      />
+                      <button
+                        className="btn btn-primary btn-sm font-black uppercase tracking-wide self-end"
+                        onClick={() => saveProjectNote(project.id, project.notes ?? '')}
+                        disabled={!(notesInput[project.id] ?? '').trim()}
+                      >
+                        Save Note
+                      </button>
+                      {(notesLogs[project.id] ?? parseNotes(project.notes ?? '')).length > 0 && (
+                        <div className="flex flex-col gap-2 mt-1 max-h-48 overflow-y-auto">
+                          {(notesLogs[project.id] ?? parseNotes(project.notes ?? '')).map((entry, idx) => (
+                            <div key={idx} className="bg-base-100/60 rounded-lg px-3 py-2 flex flex-col gap-1 group">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">{fmtTs(entry.ts)}</span>
+                                <button
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity text-base-content/30 hover:text-error text-xs font-bold px-1"
+                                  onClick={() => deleteProjectNote(project.id, idx, project.notes ?? '')}
+                                  title="Delete note"
+                                >✕</button>
+                              </div>
+                              <p className="text-sm font-medium text-base-content/80 whitespace-pre-wrap">{entry.text}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

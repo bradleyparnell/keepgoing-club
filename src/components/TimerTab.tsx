@@ -78,8 +78,35 @@ export const TimerTab: React.FC<TimerTabProps> = ({
   phase, timeLeft, isRunning, sessionCount, activeProject, musicPlaying,
   onPlay, onPause, onReset, onSkip, onChangePhase, onGoToProjects, onUpdateNotes,
 }) => {
-  const [notesValue, setNotesValue] = useState(activeProject?.notes ?? '');
-  useEffect(() => { setNotesValue(activeProject?.notes ?? ''); }, [activeProject?.id, activeProject?.notes]);
+  // Timestamped notes log
+  type NoteEntry = { ts: string; text: string };
+  const parseNotes = (raw: string): NoteEntry[] => {
+    if (!raw) return [];
+    try { const p = JSON.parse(raw); if (Array.isArray(p)) return p; } catch {}
+    return [{ ts: '', text: raw }]; // legacy plain text
+  };
+  const [notesLog, setNotesLog] = useState<NoteEntry[]>(() => parseNotes(activeProject?.notes ?? ''));
+  const [newNote, setNewNote] = useState('');
+  useEffect(() => { setNotesLog(parseNotes(activeProject?.notes ?? '')); }, [activeProject?.id, activeProject?.notes]);
+
+  const saveNote = () => {
+    if (!newNote.trim() || !activeProject) return;
+    const entry: NoteEntry = { ts: new Date().toISOString(), text: newNote.trim() };
+    const updated = [entry, ...notesLog];
+    setNotesLog(updated);
+    setNewNote('');
+    onUpdateNotes(activeProject.id, JSON.stringify(updated));
+  };
+  const deleteNote = (idx: number) => {
+    if (!activeProject) return;
+    const updated = notesLog.filter((_, i) => i !== idx);
+    setNotesLog(updated);
+    onUpdateNotes(activeProject.id, JSON.stringify(updated));
+  };
+  const fmtTs = (ts: string) => {
+    if (!ts) return 'Saved note';
+    return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  };
   const total = DURATIONS[phase];
   const pct = Math.round(((total - timeLeft) / total) * 100);
   const meta = PHASE_META[phase];
@@ -236,17 +263,44 @@ export const TimerTab: React.FC<TimerTabProps> = ({
         {/* Notes — only shown when a project is active */}
         {activeProject && (
           <div className="card bg-base-200 shadow">
-            <div className="card-body p-4 gap-2">
+            <div className="card-body p-4 gap-3">
               <div className="text-xs font-black uppercase tracking-widest text-base-content/40">📝 Session Notes</div>
-              <textarea
-                className="textarea textarea-bordered w-full text-sm font-medium resize-none bg-base-100/50 focus:outline-none focus:border-primary/50"
-                placeholder="Capture thoughts, blockers, next steps…"
-                rows={4}
-                value={notesValue}
-                onChange={e => setNotesValue(e.target.value)}
-                onBlur={() => onUpdateNotes(activeProject.id, notesValue)}
-              />
-              <div className="text-[10px] font-bold text-base-content/25 text-right">auto-saves on blur</div>
+              {/* New note input */}
+              <div className="flex flex-col gap-2">
+                <textarea
+                  className="textarea textarea-bordered w-full text-sm font-medium resize-none bg-base-100/50 focus:outline-none focus:border-primary/50"
+                  placeholder="Capture thoughts, blockers, next steps…"
+                  rows={3}
+                  value={newNote}
+                  onChange={e => setNewNote(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) saveNote(); }}
+                />
+                <button
+                  className="btn btn-primary btn-sm font-black uppercase tracking-wide self-end"
+                  onClick={saveNote}
+                  disabled={!newNote.trim()}
+                >
+                  Save Note
+                </button>
+              </div>
+              {/* Notes log */}
+              {notesLog.length > 0 && (
+                <div className="flex flex-col gap-2 mt-1 max-h-64 overflow-y-auto">
+                  {notesLog.map((entry, idx) => (
+                    <div key={idx} className="bg-base-100/60 rounded-lg px-3 py-2 flex flex-col gap-1 group">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">{fmtTs(entry.ts)}</span>
+                        <button
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-base-content/30 hover:text-error text-xs font-bold px-1"
+                          onClick={() => deleteNote(idx)}
+                          title="Delete note"
+                        >✕</button>
+                      </div>
+                      <p className="text-sm font-medium text-base-content/80 whitespace-pre-wrap">{entry.text}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
