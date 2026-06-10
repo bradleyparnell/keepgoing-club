@@ -86,8 +86,8 @@ export default function AuthScreen() {
             <img
               src="/brick-logo.png"
               alt="Keep Going bricks logo"
-              className="w-28 object-contain drop-shadow-[0_0_20px_rgba(194,65,12,0.7)]"
-              style={{marginBottom: '14px'}}
+              className="w-28 object-contain"
+              style={{filter: 'drop-shadow(0px 6px 18px rgba(0,0,0,0.55))', marginBottom: '14px'}}
             />
             <h1 className="text-4xl font-black text-white tracking-tight drop-shadow-lg leading-none">Keep Going</h1>
           </div>
