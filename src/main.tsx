@@ -94,12 +94,40 @@ const AppInner: React.FC = () => {
     notes:             p.notes ?? '',
   }));
 
+  // ── Timer persistence helpers ─────────────────────────────────────────
+  const timerKey = user ? `kg_timer_${user.id}` : 'kg_timer';
+
+  function loadTimerState(): { phase: TimerPhase; timeLeft: number; isRunning: boolean; sessionCount: number } {
+    try {
+      const raw = localStorage.getItem(timerKey);
+      if (!raw) return { phase: 'focus', timeLeft: DURATIONS.focus, isRunning: false, sessionCount: 0 };
+      const s = JSON.parse(raw);
+      if (s.isRunning && s.wallClockStart) {
+        const elapsed = Math.floor((Date.now() - s.wallClockStart) / 1000);
+        const remaining = (s.timeLeft as number) - elapsed;
+        if (remaining > 0) return { phase: s.phase, timeLeft: remaining, isRunning: true, sessionCount: s.sessionCount ?? 0 };
+        // Ran out while away — treat as paused at 0, let user restart
+        return { phase: s.phase, timeLeft: 0, isRunning: false, sessionCount: s.sessionCount ?? 0 };
+      }
+      return { phase: s.phase ?? 'focus', timeLeft: s.timeLeft ?? DURATIONS.focus, isRunning: false, sessionCount: s.sessionCount ?? 0 };
+    } catch { return { phase: 'focus', timeLeft: DURATIONS.focus, isRunning: false, sessionCount: 0 }; }
+  }
+
+  const initialTimer = loadTimerState();
+
   // Timer state
-  const [phase, setPhase]               = useState<TimerPhase>('focus');
-  const [timeLeft, setTimeLeft]         = useState(DURATIONS.focus);
-  const [isRunning, setIsRunning]       = useState(false);
-  const [sessionCount, setSessionCount] = useState(0);
+  const [phase, setPhase]               = useState<TimerPhase>(initialTimer.phase);
+  const [timeLeft, setTimeLeft]         = useState(initialTimer.timeLeft);
+  const [isRunning, setIsRunning]       = useState(initialTimer.isRunning);
+  const [sessionCount, setSessionCount] = useState(initialTimer.sessionCount);
   const [completed, setCompleted]       = useState(false);
+
+  // Persist timer state to localStorage whenever it changes
+  useEffect(() => {
+    const payload: Record<string, unknown> = { phase, timeLeft, isRunning, sessionCount };
+    if (isRunning) payload.wallClockStart = Date.now() - (DURATIONS[phase] - timeLeft) * 1000;
+    localStorage.setItem(timerKey, JSON.stringify(payload));
+  }, [phase, timeLeft, isRunning, sessionCount, timerKey]);
 
   // Keep a ref to projects so timer-completion callback has fresh data
   const projectsRef = useRef(projects);
