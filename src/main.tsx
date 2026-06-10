@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Timer, LayoutGrid, Music } from 'lucide-react';
+import { Timer, LayoutGrid, Music, CalendarDays } from 'lucide-react';
 import { TimerTab } from './components/TimerTab';
 import { ProjectsTab } from './components/ProjectsTab';
 import { SoundsTab } from './components/SoundsTab';
+import { CalendarTab } from './components/CalendarTab';
 import AuthScreen from './components/AuthScreen';
 import UserMenu from './components/UserMenu';
 import OnboardingModal from './components/OnboardingModal';
@@ -199,9 +200,10 @@ const AppInner: React.FC = () => {
   const activeProject = projects.find(p => p.id === activeProjectId) ?? null;
 
   const NAV_TABS = [
-    { id: 'projects' as Tab, icon: <LayoutGrid size={22} />, label: 'Projects' },
-    { id: 'timer'    as Tab, icon: <Timer      size={22} />, label: 'Timer'    },
-    { id: 'sounds'   as Tab, icon: <Music      size={22} />, label: 'Sounds'   },
+    { id: 'projects'  as Tab, icon: <LayoutGrid  size={22} />, label: 'Projects'  },
+    { id: 'calendar'  as Tab, icon: <CalendarDays size={22} />, label: 'Calendar'  },
+    { id: 'timer'     as Tab, icon: <Timer        size={22} />, label: 'Timer'     },
+    { id: 'sounds'    as Tab, icon: <Music        size={22} />, label: 'Sounds'    },
   ];
 
   const tabContent = (
@@ -249,6 +251,13 @@ const AppInner: React.FC = () => {
           onToggle={handleMusicToggle}
           onModeChange={handleModeChange}
           onVolumeChange={handleVolumeChange}
+        />
+      )}
+      {tab === 'calendar' && (
+        <CalendarTab
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+          onNavigateToProjects={() => setTab('projects')}
         />
       )}
     </>

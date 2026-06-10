@@ -3,7 +3,7 @@
 // Uses amplitude modulation (AM) at neural entrainment frequencies layered
 // over soft sine-wave chord pads and pink noise, similar to Brain.fm.
 
-export type BeatMode = 'gamma' | 'alpha' | 'theta' | 'binaural';
+export type BeatMode = 'gamma' | 'alpha' | 'theta' | 'binaural' | 'lofi' | 'ceo';
 
 export interface ModeInfo {
   name: string;
@@ -41,6 +41,20 @@ export const MODE_META: Record<BeatMode, ModeInfo> = {
     hzLabel: '18Hz',
     tagline: 'Alert. Sharp. Decisive.',
     desc: '18Hz binaural beats for peak beta state. Left ear 200Hz, right ear 218Hz — the brain produces an 18Hz beat. Headphones required.',
+  },
+  lofi: {
+    name: 'LOFI RAIN',
+    hz: 0,
+    hzLabel: '80 BPM',
+    tagline: 'Beats. Rain. Total calm.',
+    desc: 'Classic lofi hip-hop rhythm — soft kick & hihat at 80 BPM — layered over warm Cmaj9 pads and rain ambience. Like a productive rainy afternoon.',
+  },
+  ceo: {
+    name: 'CEO FLOW',
+    hz: 0,
+    hzLabel: 'Cinematic',
+    tagline: 'Build empires. Stay locked.',
+    desc: 'Cinematic Dmaj chord pads with a slow 60 BPM heartbeat pulse and a deep bass drone. Epic, driving, focused. The soundtrack of big decisions.',
   },
 };
 
@@ -82,6 +96,7 @@ class NeuralAudioEngine {
   private _track: BeatMode = 'gamma';
   private _noiseBuf: AudioBuffer | null = null;
   private _silentAudio: HTMLAudioElement | null = null;
+  private _rhythmTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     // Resume AudioContext whenever the page becomes visible again (screen unlock)
@@ -374,6 +389,155 @@ class NeuralAudioEngine {
     this.addNoise(ctx, 0.03);
   }
 
+  // ── LOFI helpers ─────────────────────────────────────────────────────────
+
+  private scheduleKick(ctx: AudioContext, t: number): void {
+    const osc = ctx.createOscillator();
+    const g   = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(160, t);
+    osc.frequency.exponentialRampToValueAtTime(42, t + 0.07);
+    g.gain.setValueAtTime(0.85, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
+    osc.connect(g);
+    g.connect(this.masterGain!);
+    osc.start(t);
+    osc.stop(t + 0.42);
+  }
+
+  private scheduleHihat(ctx: AudioContext, t: number, open: boolean): void {
+    const dur    = open ? 0.16 : 0.035;
+    const bufLen = Math.ceil(ctx.sampleRate * (dur + 0.01));
+    const buf    = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const d      = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) d[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const hpf = ctx.createBiquadFilter();
+    hpf.type = 'highpass';
+    hpf.frequency.value = 7500;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(open ? 0.10 : 0.12, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    src.connect(hpf);
+    hpf.connect(g);
+    g.connect(this.masterGain!);
+    src.start(t);
+    src.stop(t + dur + 0.02);
+  }
+
+  private scheduleSnare(ctx: AudioContext, t: number): void {
+    const dur    = 0.18;
+    const bufLen = Math.ceil(ctx.sampleRate * dur);
+    const buf    = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const d      = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) d[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const bpf = ctx.createBiquadFilter();
+    bpf.type = 'bandpass';
+    bpf.frequency.value = 1100;
+    bpf.Q.value = 0.6;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.10, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    src.connect(bpf);
+    bpf.connect(g);
+    g.connect(this.masterGain!);
+    src.start(t);
+    src.stop(t + dur + 0.02);
+  }
+
+  // Lofi rhythm scheduler — 80 BPM, 8th-note resolution
+  private startLofiRhythm(ctx: AudioContext): void {
+    const BPM    = 80;
+    const eighth = 60 / BPM / 2; // 8th note in seconds
+    let nextBeat = ctx.currentTime + 0.05;
+    let step     = 0;
+
+    const KICK_STEPS  = new Set([0, 4]);           // beats 1 & 3
+    const SNARE_STEPS = new Set([2, 6]);            // beats 2 & 4
+    const OPEN_STEPS  = new Set([3, 7]);            // open hihat on upbeats
+
+    const tick = () => {
+      if (!this._playing || this._track !== 'lofi') return;
+      const lookAhead = 0.15;
+      while (nextBeat < ctx.currentTime + lookAhead) {
+        const s = step % 8;
+        const human = (Math.random() - 0.5) * 0.007;
+        const t = Math.max(ctx.currentTime, nextBeat + human);
+        if (KICK_STEPS.has(s))  this.scheduleKick(ctx, t);
+        if (SNARE_STEPS.has(s)) this.scheduleSnare(ctx, t);
+        const skipHat = Math.random() < 0.08;
+        if (!skipHat) this.scheduleHihat(ctx, t, OPEN_STEPS.has(s));
+        nextBeat += eighth;
+        step++;
+      }
+      this._rhythmTimer = setTimeout(tick, 50);
+    };
+    tick();
+  }
+
+  // LOFI RAIN — warm Cmaj9 pads + rain + 80 BPM rhythm
+  private startLofi(ctx: AudioContext): void {
+    // Warm Cmaj9 pad (C3 E3 G3 B3) — very gentle AM just for breathing feel
+    this.addChordWithAM(ctx, [130.8, 164.8, 196.0, 246.9], 0.11, 580, 0.08, 0.02);
+    // Heavy rain: pink noise through a steep lowpass
+    this.addNoise(ctx, 0.065);
+    // Sub bass C2 for warmth
+    const sub = this.keep(ctx.createOscillator() as OscillatorNode);
+    (sub as OscillatorNode).type = 'sine';
+    (sub as OscillatorNode).frequency.value = 65.4; // C2
+    const subG = this.keep(ctx.createGain());
+    (subG as GainNode).gain.setValueAtTime(0, ctx.currentTime);
+    (subG as GainNode).gain.linearRampToValueAtTime(0.04, ctx.currentTime + 3);
+    (sub as OscillatorNode).connect(subG as GainNode);
+    (subG as GainNode).connect(this.masterGain!);
+    (sub as OscillatorNode).start();
+    // Kick in the beat after pads have started
+    setTimeout(() => {
+      if (this._playing && this._track === 'lofi') this.startLofiRhythm(ctx);
+    }, 2000);
+  }
+
+  // CEO FLOW — cinematic Dmaj pads + heartbeat pulse + deep bass
+  private startCeo(ctx: AudioContext): void {
+    // Big Dmaj chord: D3 F#3 A3 D4
+    this.addChordWithAM(ctx, [146.8, 185.0, 220.0, 293.7], 0.17, 700, 0.25, 0.06);
+    // Deep bass D2
+    const bass = this.keep(ctx.createOscillator() as OscillatorNode);
+    (bass as OscillatorNode).type = 'sine';
+    (bass as OscillatorNode).frequency.value = 73.4; // D2
+    const bassLfo = this.keep(ctx.createOscillator() as OscillatorNode);
+    (bassLfo as OscillatorNode).frequency.value = 0.06;
+    const bassLfoG = this.keep(ctx.createGain());
+    (bassLfoG as GainNode).gain.value = 0.5;
+    (bassLfo as OscillatorNode).connect(bassLfoG as GainNode);
+    (bassLfoG as GainNode).connect((bass as OscillatorNode).frequency);
+    const bassG = this.keep(ctx.createGain());
+    (bassG as GainNode).gain.setValueAtTime(0, ctx.currentTime);
+    (bassG as GainNode).gain.linearRampToValueAtTime(0.09, ctx.currentTime + 5);
+    (bass as OscillatorNode).connect(bassG as GainNode);
+    (bassG as GainNode).connect(this.masterGain!);
+    (bass as OscillatorNode).start();
+    (bassLfo as OscillatorNode).start();
+    // Heartbeat — soft kick pulse at 60 BPM (1s interval)
+    const BPM = 60;
+    const interval = 60 / BPM;
+    let nextPulse = ctx.currentTime + 2.5;
+    const pulse = () => {
+      if (!this._playing || this._track !== 'ceo') return;
+      while (nextPulse < ctx.currentTime + 0.2) {
+        this.scheduleKick(ctx, Math.max(ctx.currentTime + 0.005, nextPulse));
+        nextPulse += interval;
+      }
+      this._rhythmTimer = setTimeout(pulse, 100);
+    };
+    setTimeout(pulse, 2400);
+    // Light ambient noise floor
+    this.addNoise(ctx, 0.018);
+  }
+
   // ── Public API ────────────────────────────────────────────────────────────
 
   start(track: BeatMode, volume: number): void {
@@ -399,11 +563,14 @@ class NeuralAudioEngine {
       case 'alpha':    this.startAlpha(ctx);    break;
       case 'theta':    this.startTheta(ctx);    break;
       case 'binaural': this.startBinaural(ctx); break;
+      case 'lofi':     this.startLofi(ctx);     break;
+      case 'ceo':      this.startCeo(ctx);      break;
     }
   }
 
   stop(): void {
     this._playing = false;
+    if (this._rhythmTimer !== null) { clearTimeout(this._rhythmTimer); this._rhythmTimer = null; }
     // Stop the silent audio keepalive
     if (this._silentAudio) {
       this._silentAudio.pause();

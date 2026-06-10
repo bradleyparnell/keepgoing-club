@@ -12,9 +12,11 @@ interface SoundsTabProps {
   onVolumeChange: (v: number) => void;
 }
 
-const TRACK_ORDER: BeatMode[] = ['gamma', 'alpha', 'theta', 'binaural'];
+const TRACK_ORDER: BeatMode[] = ['lofi', 'ceo', 'gamma', 'alpha', 'theta', 'binaural'];
 
 const TRACK_ICONS: Record<BeatMode, string> = {
+  lofi:     '🌧️',
+  ceo:      '🏛️',
   gamma:    '⚡',
   alpha:    '🌊',
   theta:    '🌑',
@@ -76,10 +78,10 @@ export const SoundsTab: React.FC<SoundsTabProps> = ({
         <div>
           <div className="text-xs font-black uppercase tracking-wider text-base-content/60 mb-0.5">How It Works</div>
           <p className="text-xs font-semibold text-base-content/50 leading-relaxed">
-            Soft sine-wave chord pads are amplitude-modulated at neural entrainment
-            frequencies — the same principle used by Brain.fm. Your brain's neural
-            oscillations naturally sync to the pulse, nudging you into the target
-            cognitive state. No drums. No game sounds. Just clean, science-backed tones.
+            All audio is generated live — no streaming required. Lofi &amp; CEO modes
+            give you rhythm + atmosphere. Neural modes (Gamma, Alpha, Theta, Binaural)
+            use amplitude-modulated chord pads to nudge your brainwaves into a target
+            focus state — the same principle as Brain.fm.
           </p>
         </div>
       </div>

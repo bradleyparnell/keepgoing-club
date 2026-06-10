@@ -73,6 +73,28 @@ export function useProjects(selectedDate: string) {
   return { projects, loading, addProject, incrementBrick, deleteProject, refresh: fetchProjects };
 }
 
+export function useMonthProjects(year: number, month: number) {
+  const { user } = useAuth();
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    const mm   = String(month).padStart(2, '0');
+    const last = new Date(year, month, 0).getDate();
+    const start = `${year}-${mm}-01`;
+    const end   = `${year}-${mm}-${String(last).padStart(2, '0')}`;
+    supabase
+      .from('projects')
+      .select('id, name, color, planned_date, bricks_per_day, bricks_completed')
+      .eq('user_id', user.id)
+      .gte('planned_date', start)
+      .lte('planned_date', end)
+      .then(({ data }) => { if (data) setProjects(data as Project[]); });
+  }, [user, year, month]);
+
+  return projects;
+}
+
 export function useDailySettings() {
   const { user } = useAuth();
   const [workHours, setWorkHoursState] = useState(8);
