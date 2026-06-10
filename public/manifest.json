@@ -1,0 +1,27 @@
+{
+  "name": "Keep Going — Free Focus Timer",
+  "short_name": "Keep Going",
+  "description": "Get more tasks done in less time — with more focus. Free focus timer with streaks, ambient sounds, and project planning.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#c2410c",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/brick-icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/brick-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities", "lifestyle"],
+  "lang": "en-US",
+  "dir": "ltr"
+}

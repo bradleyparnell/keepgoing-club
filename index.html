@@ -3,26 +3,184 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Keep Going | Focus Timer</title>
-    <meta name="description" content="Get more tasks done in less time — with more focus. A 75 Hard-inspired focus timer. Build your wall, one brick at a time." />
+
+    <!-- ── Primary SEO ── -->
+    <title>Keep Going | Free Focus Timer & Productivity App</title>
+    <meta name="description" content="Keep Going is a free focus timer and productivity app that helps you get more tasks done in less time — with more focus. Build your wall one brick at a time. Track streaks, earn badges, and stay locked in with ambient sounds and project planning." />
+    <meta name="keywords" content="free focus timer, free productivity app, focus timer, deep work timer, pomodoro alternative, task focus app, productivity streak, brick productivity, free online timer, ambient focus sounds, project planner, keep going app" />
+    <meta name="author" content="Keep Going" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://keepgoing.club" />
     <meta name="theme-color" content="#111111" />
 
-    <!-- Open Graph -->
+    <!-- ── Open Graph ── -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://keepgoing.club" />
-    <meta property="og:title" content="Keep Going | Focus Timer" />
-    <meta property="og:description" content="Get more tasks done in less time — with more focus. Build your wall, one brick at a time." />
+    <meta property="og:site_name" content="Keep Going" />
+    <meta property="og:title" content="Keep Going — Free Focus Timer & Productivity App" />
+    <meta property="og:description" content="Get more tasks done in less time — with more focus. Free focus timer with streak tracking, ambient sounds, project planning, and achievement badges. Build your wall, one brick at a time." />
     <meta property="og:image" content="https://keepgoing.club/social.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Keep Going — Free Focus Timer App" />
+    <meta property="og:locale" content="en_US" />
 
-    <!-- Twitter Card -->
+    <!-- ── Twitter / X Card ── -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Keep Going | Focus Timer" />
-    <meta name="twitter:description" content="Get more tasks done in less time — with more focus. Build your wall, one brick at a time." />
+    <meta name="twitter:site" content="@keepgoingclub" />
+    <meta name="twitter:title" content="Keep Going — Free Focus Timer & Productivity App" />
+    <meta name="twitter:description" content="Get more tasks done in less time — with more focus. Free focus timer with streaks, ambient sounds, and project planning." />
     <meta name="twitter:image" content="https://keepgoing.club/social.png" />
+    <meta name="twitter:image:alt" content="Keep Going — Free Focus Timer App" />
 
+    <!-- ── Icons & PWA ── -->
+    <link rel="icon" type="image/png" href="/brick-icon.png" />
     <link rel="apple-touch-icon" href="/brick-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- ── Structured Data: SoftwareApplication (GEO) ── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Keep Going",
+      "url": "https://keepgoing.club",
+      "description": "Keep Going is a free focus timer and productivity app. Build your wall one brick at a time — track deep work sessions, plan projects by date, earn achievement badges, maintain streaks, and stay in the zone with built-in ambient sounds.",
+      "applicationCategory": "ProductivityApplication",
+      "operatingSystem": "Web, iOS, Android",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Free focus timer",
+        "Deep work session tracking",
+        "Streak tracking and badges",
+        "Project planning with date strip",
+        "Ambient focus sounds (LOFI Rain, CEO Flow, neural modes)",
+        "Calendar view with brick stats",
+        "Google and email authentication"
+      ],
+      "screenshot": "https://keepgoing.club/social.png",
+      "creator": {
+        "@type": "Organization",
+        "name": "Keep Going",
+        "url": "https://keepgoing.club"
+      }
+    }
+    </script>
+
+    <!-- ── Structured Data: HowTo (AEO / GEO) ── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "HowTo",
+      "name": "How to use Keep Going to get more done",
+      "description": "Keep Going is a free focus productivity app. Here is how it works in four steps.",
+      "step": [
+        {
+          "@type": "HowToStep",
+          "position": 1,
+          "name": "Set your daily brick goal",
+          "text": "Choose how many focused work sessions (bricks) you want to complete each day. Each brick is one deep-work block."
+        },
+        {
+          "@type": "HowToStep",
+          "position": 2,
+          "name": "Start the timer",
+          "text": "Hit start on your focus timer. Stay locked in for the session. Ambient sounds like LOFI Rain or CEO Flow help you block out distractions."
+        },
+        {
+          "@type": "HowToStep",
+          "position": 3,
+          "name": "Lay your bricks",
+          "text": "Complete sessions to lay bricks and fill your wall. Track progress across projects and dates. Earn achievement badges as you hit milestones."
+        },
+        {
+          "@type": "HowToStep",
+          "position": 4,
+          "name": "Keep your streak alive",
+          "text": "Come back every day to maintain your streak. Keep Going tracks your best streak and total bricks laid so your momentum is always visible."
+        }
+      ]
+    }
+    </script>
+
+    <!-- ── Structured Data: FAQPage (AEO) ── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is Keep Going free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Keep Going is completely free to use. Sign up with your email or Google account at keepgoing.club."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is Keep Going?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Keep Going is a free focus timer and productivity app that helps you complete deep work sessions, track streaks, plan projects, earn achievement badges, and stay focused with built-in ambient sounds."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How is Keep Going different from a Pomodoro timer?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Keep Going goes beyond a simple Pomodoro timer. It adds streak tracking, project planning with a date calendar, achievement badges, ambient focus sounds (LOFI Rain and CEO Flow), and a visual brick-wall metaphor to make your daily progress feel tangible."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What are bricks in Keep Going?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Each brick represents one completed focus session. You set a daily brick goal, and every session you finish lays another brick in your wall. A full day's goal means your wall is complete."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Keep Going have ambient sounds?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Keep Going includes LOFI Rain, CEO Flow (a cinematic chord progression), and multiple neural entrainment modes to help you stay focused during deep work."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I track multiple projects in Keep Going?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Keep Going has a Projects tab with a 7-day date strip. You can create date-scoped projects and see which days have active work planned."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- ── Structured Data: WebSite with SearchAction (GEO) ── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Keep Going",
+      "url": "https://keepgoing.club",
+      "description": "Free focus timer and productivity app — get more tasks done in less time, with more focus.",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://keepgoing.club",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
   </head>
   <body>
     <div id="root"></div>
