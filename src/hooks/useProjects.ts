@@ -70,7 +70,17 @@ export function useProjects(selectedDate: string) {
     if (!error) setProjects(prev => prev.filter(p => p.id !== projectId));
   };
 
-  return { projects, loading, addProject, incrementBrick, deleteProject, refresh: fetchProjects };
+  const updateNotes = async (projectId: string, notes: string) => {
+    const { error } = await supabase
+      .from('projects')
+      .update({ notes })
+      .eq('id', projectId);
+    if (!error) {
+      setProjects(prev => prev.map(p => p.id === projectId ? { ...p, notes } : p));
+    }
+  };
+
+  return { projects, loading, addProject, incrementBrick, deleteProject, updateNotes, refresh: fetchProjects };
 }
 
 export function useMonthProjects(year: number, month: number) {

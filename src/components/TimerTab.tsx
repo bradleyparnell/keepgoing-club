@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw, SkipForward } from 'lucide-react';
 import { TimerPhase, Project } from '../types';
 import { Brick } from './Brick';
@@ -50,6 +50,7 @@ interface TimerTabProps {
   onSkip: () => void;
   onChangePhase: (p: TimerPhase) => void;
   onGoToProjects: () => void;
+  onUpdateNotes: (projectId: string, notes: string) => void;
 }
 
 const DURATIONS: Record<TimerPhase, number> = {
@@ -75,8 +76,10 @@ function fmt(s: number): string {
 
 export const TimerTab: React.FC<TimerTabProps> = ({
   phase, timeLeft, isRunning, sessionCount, activeProject, musicPlaying,
-  onPlay, onPause, onReset, onSkip, onChangePhase, onGoToProjects,
+  onPlay, onPause, onReset, onSkip, onChangePhase, onGoToProjects, onUpdateNotes,
 }) => {
+  const [notesValue, setNotesValue] = useState(activeProject?.notes ?? '');
+  useEffect(() => { setNotesValue(activeProject?.notes ?? ''); }, [activeProject?.id, activeProject?.notes]);
   const total = DURATIONS[phase];
   const pct = Math.round(((total - timeLeft) / total) * 100);
   const meta = PHASE_META[phase];
@@ -228,6 +231,24 @@ export const TimerTab: React.FC<TimerTabProps> = ({
           >
             🧱 Assign Your Target →
           </button>
+        )}
+
+        {/* Notes — only shown when a project is active */}
+        {activeProject && (
+          <div className="card bg-base-200 shadow">
+            <div className="card-body p-4 gap-2">
+              <div className="text-xs font-black uppercase tracking-widest text-base-content/40">📝 Session Notes</div>
+              <textarea
+                className="textarea textarea-bordered w-full text-sm font-medium resize-none bg-base-100/50 focus:outline-none focus:border-primary/50"
+                placeholder="Capture thoughts, blockers, next steps…"
+                rows={4}
+                value={notesValue}
+                onChange={e => setNotesValue(e.target.value)}
+                onBlur={() => onUpdateNotes(activeProject.id, notesValue)}
+              />
+              <div className="text-[10px] font-bold text-base-content/25 text-right">auto-saves on blur</div>
+            </div>
+          </div>
         )}
 
         {/* Bible verse */}

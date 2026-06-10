@@ -72,7 +72,7 @@ const AppInner: React.FC = () => {
   const { user } = useAuth();
 
   // Supabase data hooks
-  const { projects: rawProjects, addProject, incrementBrick, deleteProject } = useProjects(selectedDate);
+  const { projects: rawProjects, addProject, incrementBrick, deleteProject, updateNotes } = useProjects(selectedDate);
   const { workHours, setWorkHours } = useDailySettings();
   const achievements = useAchievements();
   const [showBadges, setShowBadges] = useState(false);
@@ -91,6 +91,7 @@ const AppInner: React.FC = () => {
     totalTomatoes:     p.bricks_per_day,
     completedTomatoes: p.bricks_completed,
     plannedDate:       p.planned_date,
+    notes:             p.notes ?? '',
   }));
 
   // Timer state
@@ -245,6 +246,7 @@ const AppInner: React.FC = () => {
           onToggleTask={handleToggleTask}
           onDeleteTask={handleDeleteTask}
           onUpdateTomatoes={handleUpdateTomatoes}
+          onUpdateNotes={updateNotes}
         />
       )}
       {tab === 'timer' && (
@@ -261,6 +263,7 @@ const AppInner: React.FC = () => {
           onSkip={handleSkip}
           onChangePhase={handleChangePhase}
           onGoToProjects={() => setTab('projects')}
+          onUpdateNotes={updateNotes}
         />
       )}
       {tab === 'sounds' && (

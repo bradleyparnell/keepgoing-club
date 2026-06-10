@@ -22,6 +22,7 @@ interface ProjectsTabProps {
   onToggleTask: (taskId: string) => void;
   onDeleteTask: (taskId: string) => void;
   onUpdateTomatoes: (projectId: string, total: number) => void;
+  onUpdateNotes: (projectId: string, notes: string) => void;
 }
 
 const QUOTES = [
@@ -47,11 +48,12 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
   projects, tasks, activeProjectId, dailyBudget, selectedDate,
   onDateChange, onSetActive, onStartFocusing, onSetBudget,
   onAddProject, onDeleteProject, onAddTask,
-  onToggleTask, onDeleteTask, onUpdateTomatoes,
+  onToggleTask, onDeleteTask, onUpdateTomatoes, onUpdateNotes,
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [taskInputs, setTaskInputs] = useState<Record<string, string>>({});
+  const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
 
   function addTask(projectId: string) {
     const text = (taskInputs[projectId] || '').trim();
@@ -229,6 +231,19 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                     <button onClick={() => addTask(project.id)} className="btn btn-primary btn-sm font-black">
                       <Plus size={14} />
                     </button>
+                  </div>
+
+                  {/* Notes */}
+                  <div className="border-t border-base-300 pt-3 mt-1">
+                    <div className="text-xs font-black uppercase tracking-widest text-base-content/40 mb-2">📝 Notes</div>
+                    <textarea
+                      className="textarea textarea-bordered w-full text-sm font-medium resize-none bg-base-100/50 focus:outline-none focus:border-primary/50"
+                      placeholder="Capture thoughts, blockers, next steps…"
+                      rows={3}
+                      value={notesDraft[project.id] ?? project.notes ?? ''}
+                      onChange={e => setNotesDraft(prev => ({ ...prev, [project.id]: e.target.value }))}
+                      onBlur={() => onUpdateNotes(project.id, notesDraft[project.id] ?? project.notes ?? '')}
+                    />
                   </div>
                 </div>
               )}

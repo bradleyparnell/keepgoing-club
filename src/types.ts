@@ -9,6 +9,7 @@ export interface Project {
   totalTomatoes: number;
   completedTomatoes: number;
   plannedDate: string; // YYYY-MM-DD
+  notes: string;
 }
 
 export interface Task {
