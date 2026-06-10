@@ -82,11 +82,11 @@ export default function AuthScreen() {
       <div className="relative w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 mb-4">
+          <div className="inline-flex items-center justify-center w-32 h-32 mb-4">
             <img
               src="/brick-logo.png"
               alt="Keep Going bricks logo"
-              className="w-20 h-20 object-contain drop-shadow-[0_0_16px_rgba(194,65,12,0.7)]"
+              className="w-32 h-32 object-contain drop-shadow-[0_0_20px_rgba(194,65,12,0.7)]"
             />
           </div>
           <h1 className="text-4xl font-black text-white tracking-tight drop-shadow-lg">Keep Going</h1>
@@ -201,6 +201,10 @@ export default function AuthScreen() {
             )}
           </div>
         </div>
+        {/* Created by */}
+        <p className="text-center text-white/30 text-xs mt-5 tracking-wide">
+          Created by Brad Parnell
+        </p>
       </div>
     </div>
   );
