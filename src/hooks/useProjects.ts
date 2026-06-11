@@ -11,6 +11,7 @@ export interface Project {
   planned_date: string;
   bricks_completed: number;
   notes: string;
+  is_completed: boolean;
   created_at: string;
 }
 
@@ -81,7 +82,12 @@ export function useProjects(selectedDate: string) {
     }
   };
 
-  return { projects, loading, addProject, incrementBrick, deleteProject, updateNotes, refresh: fetchProjects };
+  const markComplete = async (projectId: string, completed: boolean) => {
+    await supabase.from('projects').update({ is_completed: completed }).eq('id', projectId);
+    setProjects(prev => prev.map(p => p.id === projectId ? { ...p, is_completed: completed } : p));
+  };
+
+  return { projects, loading, addProject, incrementBrick, deleteProject, updateNotes, markComplete, refresh: fetchProjects };
 }
 
 export function useMonthProjects(year: number, month: number) {
@@ -96,7 +102,7 @@ export function useMonthProjects(year: number, month: number) {
     const end   = `${year}-${mm}-${String(last).padStart(2, '0')}`;
     supabase
       .from('projects')
-      .select('id, name, color, planned_date, bricks_per_day, bricks_completed')
+      .select('id, name, color, planned_date, bricks_per_day, bricks_completed, notes, is_completed')
       .eq('user_id', user.id)
       .gte('planned_date', start)
       .lte('planned_date', end)

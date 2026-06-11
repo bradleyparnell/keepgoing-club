@@ -10,6 +10,7 @@ export interface Project {
   completedTomatoes: number;
   plannedDate: string; // YYYY-MM-DD
   notes: string;
+  isCompleted: boolean;
 }
 
 export interface Task {

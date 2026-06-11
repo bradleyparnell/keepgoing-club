@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, ChevronDown, ChevronUp, Check, Target, PlayCircle, Minus } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Check, Target, PlayCircle, Minus, CheckCircle } from 'lucide-react';
 import { Project, Task } from '../types';
 import { AddProjectModal } from './AddProjectModal';
 import { Brick } from './Brick';
@@ -23,6 +23,7 @@ interface ProjectsTabProps {
   onDeleteTask: (taskId: string) => void;
   onUpdateTomatoes: (projectId: string, total: number) => void;
   onUpdateNotes: (projectId: string, notes: string) => void;
+  onMarkComplete: (projectId: string, completed: boolean) => void;
 }
 
 const QUOTES = [
@@ -48,7 +49,7 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
   projects, tasks, activeProjectId, dailyBudget, selectedDate,
   onDateChange, onSetActive, onStartFocusing, onSetBudget,
   onAddProject, onDeleteProject, onAddTask,
-  onToggleTask, onDeleteTask, onUpdateTomatoes, onUpdateNotes,
+  onToggleTask, onDeleteTask, onUpdateTomatoes, onUpdateNotes, onMarkComplete,
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -174,9 +175,10 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
         const isActive = project.id === activeProjectId;
         const isExpanded = expandedId === project.id;
         const remaining = project.totalTomatoes - project.completedTomatoes;
+        const isDone = project.isCompleted;
 
         return (
-          <div key={project.id} className={`card bg-base-200 shadow-md transition-all ${isActive ? 'ring-2 ring-primary' : ''}`}>
+          <div key={project.id} className={`card bg-base-200 shadow-md transition-all ${isDone ? 'opacity-50 grayscale' : ''} ${isActive && !isDone ? 'ring-2 ring-primary' : ''}`}>
             <div className="card-body p-4 gap-3">
               <div className="flex items-start gap-2">
                 <div className="flex-1 min-w-0">
@@ -200,6 +202,13 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                       <Target size={11} /> Set Active
                     </button>
                   )}
+                  <button
+                    onClick={() => onMarkComplete(project.id, !isDone)}
+                    title={isDone ? 'Mark incomplete' : 'Mark complete'}
+                    className={`btn btn-xs btn-ghost opacity-50 hover:opacity-100 ${isDone ? 'text-primary' : 'hover:text-primary'}`}
+                  >
+                    {isDone ? <CheckCircle size={14} className="text-primary" /> : <Check size={14} />}
+                  </button>
                   <button onClick={() => onDeleteProject(project.id)} className="btn btn-xs btn-ghost opacity-50 hover:opacity-100 hover:text-error">
                     <Trash2 size={14} />
                   </button>

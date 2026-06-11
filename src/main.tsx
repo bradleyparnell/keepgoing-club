@@ -72,7 +72,7 @@ const AppInner: React.FC = () => {
   const { user } = useAuth();
 
   // Supabase data hooks
-  const { projects: rawProjects, addProject, incrementBrick, deleteProject, updateNotes } = useProjects(selectedDate);
+  const { projects: rawProjects, addProject, incrementBrick, deleteProject, updateNotes, markComplete } = useProjects(selectedDate);
   const { workHours, setWorkHours } = useDailySettings();
   const achievements = useAchievements();
   const [showBadges, setShowBadges] = useState(false);
@@ -92,6 +92,7 @@ const AppInner: React.FC = () => {
     completedTomatoes: p.bricks_completed,
     plannedDate:       p.planned_date,
     notes:             p.notes ?? '',
+    isCompleted:       p.is_completed ?? false,
   }));
 
   // ── Timer persistence helpers ─────────────────────────────────────────
@@ -275,6 +276,7 @@ const AppInner: React.FC = () => {
           onDeleteTask={handleDeleteTask}
           onUpdateTomatoes={handleUpdateTomatoes}
           onUpdateNotes={updateNotes}
+          onMarkComplete={markComplete}
         />
       )}
       {tab === 'timer' && (
